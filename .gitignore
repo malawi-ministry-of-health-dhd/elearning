@@ -1,0 +1,7 @@
+config.php
+moodledata/
+.cache/
+vendor/
+node_modules/
+.env
+*.log
