@@ -309,6 +309,376 @@ class course_renderer extends \core_course_renderer {
     }
 
     /**
+     * Renders the course category page with Academi catalogue framing.
+     *
+     * @param int|stdClass|\core_course_category $category Category to render.
+     * @return string
+     */
+    public function course_category($category) {
+        $coursecat = $this->get_course_category_for_catalogue($category);
+        $coursecount = $coursecat->get_courses_count(['recursive' => true]);
+        $categorycount = $coursecat->get_children_count();
+        $cards = $this->get_course_catalogue_cards($coursecat);
+        $programmecount = $categorycount ?: count($cards);
+        $display = $this->get_course_catalogue_display();
+        $perpage = $this->get_course_catalogue_perpage();
+        $page = max(0, optional_param('page', 0, PARAM_INT));
+        $totalcards = count($cards);
+        $maxpage = $totalcards > 0 ? (int)floor(($totalcards - 1) / $perpage) : 0;
+        $page = min($page, $maxpage);
+        $pagedcards = array_slice($cards, $page * $perpage, $perpage);
+
+        $output = html_writer::start_tag('div', ['class' => 'academi-course-index']);
+        $output .= $this->course_catalogue_hero($coursecount, $programmecount);
+        $output .= html_writer::start_tag('div', ['class' => 'course-catalogue-shell']);
+        $output .= $this->course_catalogue_controls($totalcards, $display, $perpage);
+        $output .= $this->course_catalogue_cards($pagedcards, $display);
+        $output .= $this->course_catalogue_pagination($totalcards, $page, $perpage, $display);
+        $output .= html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
+
+        return $output;
+    }
+
+    /**
+     * Render the catalogue hero area.
+     *
+     * @param int $coursecount Number of courses.
+     * @param int $programmecount Number of programmes.
+     * @return string
+     */
+    private function course_catalogue_hero(int $coursecount, int $programmecount): string {
+        $stats = html_writer::start_tag('dl', ['class' => 'course-index-hero__stats']);
+        $stats .= html_writer::tag('div',
+            html_writer::tag('dt', get_string('courses')) .
+            html_writer::tag('dd', number_format($coursecount))
+        );
+        $stats .= html_writer::tag('div',
+            html_writer::tag('dt', 'Programmes') .
+            html_writer::tag('dd', number_format($programmecount))
+        );
+        $stats .= html_writer::tag('div',
+            html_writer::tag('dt', 'Enrolled health workers') .
+            html_writer::tag('dd', '8,400+')
+        );
+        $stats .= html_writer::tag('div',
+            html_writer::tag('dt', 'Accredited') .
+            html_writer::tag('dd', 'CPD')
+        );
+        $stats .= html_writer::end_tag('dl');
+
+        $search = html_writer::start_tag('form', [
+            'class' => 'course-index-hero__search',
+            'action' => new moodle_url('/course/search.php'),
+            'method' => 'get',
+        ]);
+        $search .= html_writer::tag('span', '', ['class' => 'course-index-hero__searchicon', 'aria-hidden' => 'true']);
+        $search .= html_writer::empty_tag('input', [
+            'type' => 'search',
+            'name' => 'search',
+            'placeholder' => 'Search ' . number_format($coursecount) . ' courses, e.g. infection control',
+            'aria-label' => get_string('searchcourses'),
+        ]);
+        $search .= html_writer::tag('button', get_string('search'), ['type' => 'submit']);
+        $search .= html_writer::end_tag('form');
+
+        $hero = html_writer::start_tag('div', ['class' => 'course-index-hero']);
+        $hero .= html_writer::start_tag('div', ['class' => 'course-index-hero__inner']);
+        $hero .= html_writer::tag('span', 'Ministry of Health - Malawi', ['class' => 'course-index-hero__eyebrow']);
+        $hero .= html_writer::tag('h2', 'Continuous Professional Development Platform');
+        $hero .= html_writer::tag('p',
+            "Build the skills that keep Malawi's health system running - accredited, self-paced courses for every cadre, free for MoH staff.",
+            ['class' => 'course-index-hero__intro']
+        );
+        $hero .= $search;
+        $hero .= $stats;
+        $hero .= html_writer::end_tag('div');
+        $hero .= html_writer::tag('div', '', ['class' => 'course-index-hero__mark', 'aria-hidden' => 'true']);
+        $hero .= html_writer::end_tag('div');
+
+        return $hero;
+    }
+
+    /**
+     * Render catalogue controls.
+     *
+     * @param int $cardcount Number of visible cards.
+     * @param string $display Current display mode.
+     * @param int $perpage Cards per page.
+     * @return string
+     */
+    private function course_catalogue_controls(int $cardcount, string $display, int $perpage): string {
+        $controls = html_writer::start_tag('div', ['class' => 'course-catalogue-toolbar']);
+        $controls .= html_writer::start_tag('div', ['class' => 'course-catalogue-filters', 'aria-label' => 'Course filters']);
+        $controls .= html_writer::tag('span', 'All programmes', ['class' => 'catalogue-pill active']);
+        $controls .= html_writer::tag('span', 'Most popular', ['class' => 'catalogue-pill']);
+        $controls .= html_writer::tag('span', 'Recently updated', ['class' => 'catalogue-pill']);
+        $controls .= html_writer::tag('span', 'Certified', ['class' => 'catalogue-pill']);
+        $controls .= html_writer::end_tag('div');
+        $controls .= html_writer::start_tag('div', ['class' => 'course-catalogue-actions']);
+        $controls .= $this->course_catalogue_view_toggle($display, $perpage);
+        $controls .= html_writer::tag('div',
+            html_writer::tag('span', 'Sort:', ['class' => 'course-catalogue-sort__label']) . ' A-Z',
+            ['class' => 'course-catalogue-sort']
+        );
+        $controls .= html_writer::end_tag('div');
+        $controls .= html_writer::end_tag('div');
+        $controls .= html_writer::tag('h3', number_format($cardcount) . ' programmes', ['class' => 'course-catalogue-count']);
+
+        return $controls;
+    }
+
+    /**
+     * Render card/list view toggle links.
+     *
+     * @param string $display Current display mode.
+     * @param int $perpage Cards per page.
+     * @return string
+     */
+    private function course_catalogue_view_toggle(string $display, int $perpage): string {
+        $output = html_writer::start_tag('div', [
+            'class' => 'course-catalogue-view-toggle',
+            'aria-label' => 'Display format',
+        ]);
+
+        foreach (['list' => 'List', 'card' => 'Cards'] as $mode => $label) {
+            $classes = ['catalogue-view-option', 'catalogue-view-option--' . $mode];
+            if ($display === $mode) {
+                $classes[] = 'active';
+            }
+            $output .= html_writer::link($this->course_catalogue_url([
+                'display' => $mode,
+                'perpage' => $perpage,
+                'page' => 0,
+            ]), $label, [
+                'class' => implode(' ', $classes),
+                'aria-current' => $display === $mode ? 'true' : null,
+            ]);
+        }
+
+        $output .= html_writer::end_tag('div');
+        return $output;
+    }
+
+    /**
+     * Render catalogue cards.
+     *
+     * @param array $cards Card data.
+     * @param string $display Current display mode.
+     * @return string
+     */
+    private function course_catalogue_cards(array $cards, string $display): string {
+        if (empty($cards)) {
+            return html_writer::tag('div', get_string('nocourses'), ['class' => 'course-catalogue-empty']);
+        }
+
+        $output = html_writer::start_tag('div', ['class' => 'course-catalogue-list course-catalogue-list--' . $display]);
+        foreach (array_values($cards) as $index => $card) {
+            $variant = ($index % 6) + 1;
+            $output .= html_writer::start_tag('article', ['class' => 'course-catalogue-card']);
+            $output .= html_writer::tag('div',
+                html_writer::tag('span', '', ['class' => 'catalogue-cover__icon', 'aria-hidden' => 'true']) .
+                html_writer::tag('span', 'Cover', ['class' => 'catalogue-cover__label']),
+                ['class' => 'catalogue-cover catalogue-cover--' . $variant]
+            );
+            $output .= html_writer::start_tag('div', ['class' => 'catalogue-card-body']);
+            $output .= html_writer::start_tag('div', ['class' => 'catalogue-card-copy']);
+            $output .= html_writer::tag('div', $this->course_catalogue_badges($card), ['class' => 'catalogue-card-badges']);
+            $output .= html_writer::tag('h4',
+                html_writer::link($card['url'], $card['name'])
+            );
+            $output .= html_writer::tag('p', $card['summary']);
+            $output .= html_writer::tag('div', $this->course_catalogue_meta($card), ['class' => 'catalogue-card-meta']);
+            $output .= html_writer::end_tag('div');
+            $output .= html_writer::link($card['url'], 'View programme ' . html_writer::tag('span', '->', ['aria-hidden' => 'true']), [
+                'class' => 'catalogue-card-action',
+            ]);
+            $output .= html_writer::end_tag('div');
+            $output .= html_writer::end_tag('article');
+        }
+        $output .= html_writer::end_tag('div');
+
+        return $output;
+    }
+
+    /**
+     * Render pagination below the catalogue.
+     *
+     * @param int $total Total cards.
+     * @param int $page Current page.
+     * @param int $perpage Cards per page.
+     * @param string $display Current display mode.
+     * @return string
+     */
+    private function course_catalogue_pagination(int $total, int $page, int $perpage, string $display): string {
+        if ($total <= $perpage) {
+            return '';
+        }
+
+        $paging = $this->paging_bar($total, $page, $perpage, $this->course_catalogue_url([
+            'display' => $display,
+            'perpage' => $perpage,
+        ]));
+
+        return html_writer::tag('div', $paging, ['class' => 'course-catalogue-pagination']);
+    }
+
+    /**
+     * Build card badges.
+     *
+     * @param array $card Card data.
+     * @return string
+     */
+    private function course_catalogue_badges(array $card): string {
+        $badges = '';
+        if (!empty($card['certified'])) {
+            $badges .= html_writer::tag('span', 'Certified', ['class' => 'badge-certified']);
+        }
+        $badges .= html_writer::tag('span', 'CPD', ['class' => 'badge-cpd']);
+        return $badges;
+    }
+
+    /**
+     * Build card metadata.
+     *
+     * @param array $card Card data.
+     * @return string
+     */
+    private function course_catalogue_meta(array $card): string {
+        $coursecount = (int)$card['coursecount'];
+        $courselabel = $coursecount === 1 ? '1 course' : $coursecount . ' courses';
+        $meta = html_writer::tag('span', $courselabel, ['class' => 'meta-courses']);
+        $meta .= html_writer::tag('span', $card['duration'], ['class' => 'meta-duration']);
+        $meta .= html_writer::tag('span', $card['level'], ['class' => 'meta-level']);
+        $meta .= html_writer::tag('span',
+            html_writer::tag('span', 'KM') .
+            html_writer::tag('span', 'TZ') .
+            html_writer::tag('span', 'RN') .
+            html_writer::tag('span', '+5'),
+            ['class' => 'meta-audience']
+        );
+        return $meta;
+    }
+
+    /**
+     * Build cards from child categories when present, otherwise direct courses.
+     *
+     * @param \core_course_category $coursecat Category to inspect.
+     * @return array
+     */
+    private function get_course_catalogue_cards(\core_course_category $coursecat): array {
+        $cards = [];
+        $chelper = new \coursecat_helper();
+        $children = $coursecat->get_children(['limit' => 0]);
+        foreach ($children as $child) {
+            $summary = $this->course_catalogue_text($chelper->get_category_formatted_description($child));
+            if ($summary === '') {
+                $summary = 'A focused learning pathway for Ministry of Health staff and health system partners.';
+            }
+            $cards[] = [
+                'name' => $child->get_formatted_name(),
+                'summary' => $summary,
+                'url' => new moodle_url('/course/index.php', ['categoryid' => $child->id]),
+                'coursecount' => $child->get_courses_count(['recursive' => true]),
+                'duration' => 'Self-paced',
+                'level' => 'All levels',
+                'certified' => true,
+            ];
+        }
+
+        if (!empty($cards)) {
+            return $cards;
+        }
+
+        $courses = $coursecat->get_courses([
+            'recursive' => true,
+            'summary' => true,
+            'coursecontacts' => true,
+            'limit' => 50,
+        ]);
+        foreach ($courses as $course) {
+            $summary = $this->course_catalogue_text($course->summary ?? '');
+            if ($summary === '') {
+                $summary = 'A practical CPD course for Malawi health workers.';
+            }
+            $cards[] = [
+                'name' => $course->get_formatted_name(),
+                'summary' => $summary,
+                'url' => new moodle_url('/course/view.php', ['id' => $course->id]),
+                'coursecount' => 1,
+                'duration' => 'Self-paced',
+                'level' => 'All levels',
+                'certified' => !empty($course->visible),
+            ];
+        }
+
+        return $cards;
+    }
+
+    /**
+     * Trim text for catalogue cards.
+     *
+     * @param string $text Raw text.
+     * @return string
+     */
+    private function course_catalogue_text(string $text): string {
+        $text = trim(preg_replace('/\s+/', ' ', strip_tags($text)));
+        if (strlen($text) > 170) {
+            $text = rtrim(substr($text, 0, 167)) . '...';
+        }
+        return s($text);
+    }
+
+    /**
+     * Get selected catalogue display mode.
+     *
+     * @return string
+     */
+    private function get_course_catalogue_display(): string {
+        $display = optional_param('display', 'list', PARAM_ALPHA);
+        return in_array($display, ['list', 'card'], true) ? $display : 'list';
+    }
+
+    /**
+     * Get selected catalogue page size.
+     *
+     * @return int
+     */
+    private function get_course_catalogue_perpage(): int {
+        $perpage = optional_param('perpage', 10, PARAM_INT);
+        if ($perpage < 1) {
+            return 10;
+        }
+        return min($perpage, 50);
+    }
+
+    /**
+     * Build a catalogue URL preserving the current category page.
+     *
+     * @param array $params Query parameters.
+     * @return moodle_url
+     */
+    private function course_catalogue_url(array $params): moodle_url {
+        return new moodle_url($this->page->url, $params);
+    }
+
+    /**
+     * Resolve a course category from the accepted course_category() argument shapes.
+     *
+     * @param int|stdClass|\core_course_category $category Category to resolve.
+     * @return \core_course_category
+     */
+    private function get_course_category_for_catalogue($category) {
+        if (empty($category)) {
+            return \core_course_category::user_top();
+        }
+        if (is_object($category) && $category instanceof \core_course_category) {
+            return $category;
+        }
+        return \core_course_category::get(is_object($category) ? $category->id : $category);
+    }
+
+    /**
      * Returns HTML to display a course category as a part of a tree
      *
      * This is an internal function, to display a particular category and all its contents.

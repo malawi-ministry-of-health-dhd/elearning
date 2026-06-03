@@ -264,6 +264,7 @@ function theme_academi_get_main_scss_content($theme) {
         // Fallback to default.
         $scss .= file_get_contents($CFG->dirroot . '/theme/academi/scss/preset/default.scss');
     }
+    $scss .= "\n" . file_get_contents($CFG->dirroot . '/theme/academi/scss/course.scss');
     return $scss;
 }
 
@@ -288,8 +289,12 @@ function theme_academi_get_pre_scss($theme) {
  * @return string
  */
 function theme_academi_get_extra_scss($theme) {
+    global $CFG;
+
     // Load the settings from the parent.
     $theme = theme_config::load('boost');
     // Call the parent themes get_extra_scss function.
-    return theme_boost_get_extra_scss($theme);
+    $scss = theme_boost_get_extra_scss($theme);
+    $scss .= file_get_contents($CFG->dirroot . '/theme/academi/scss/courseindex-late.scss');
+    return $scss;
 }
