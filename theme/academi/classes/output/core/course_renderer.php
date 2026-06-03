@@ -618,11 +618,11 @@ class course_renderer extends \core_course_renderer {
     /**
      * Trim text for catalogue cards.
      *
-     * @param string $text Raw text.
+     * @param string|null $text Raw text.
      * @return string
      */
-    private function course_catalogue_text(string $text): string {
-        $text = trim(preg_replace('/\s+/', ' ', strip_tags($text)));
+    private function course_catalogue_text(?string $text): string {
+        $text = trim(preg_replace('/\s+/', ' ', strip_tags($text ?? '')));
         if (strlen($text) > 170) {
             $text = rtrim(substr($text, 0, 167)) . '...';
         }
