@@ -316,6 +316,9 @@ class course_renderer extends \core_course_renderer {
      */
     public function course_category($category) {
         $coursecat = $this->get_course_category_for_catalogue($category);
+        if ($this->is_programme_detail_view($coursecat)) {
+            return $this->programme_detail($coursecat);
+        }
         $coursecount = $coursecat->get_courses_count(['recursive' => true]);
         $categorycount = $coursecat->get_children_count();
         $cards = $this->get_course_catalogue_cards($coursecat);
@@ -881,6 +884,597 @@ class course_renderer extends \core_course_renderer {
             return $category;
         }
         return \core_course_category::get(is_object($category) ? $category->id : $category);
+    }
+
+    /**
+     * Should this category render as a programme detail page (modules + progress)
+     * rather than as a catalogue of sub-programmes?
+     *
+     * @param \core_course_category $coursecat
+     * @return bool
+     */
+    private function is_programme_detail_view(\core_course_category $coursecat): bool {
+        if (empty($coursecat->id)) {
+            return false;
+        }
+        if ($coursecat->get_children_count() > 0) {
+            return false;
+        }
+        return $coursecat->get_courses_count(['recursive' => false]) > 0
+            || $coursecat->get_courses_count(['recursive' => true]) > 0;
+    }
+
+    /**
+     * Render the programme (module list) detail page for a leaf category.
+     *
+     * @param \core_course_category $coursecat
+     * @return string
+     */
+    private function programme_detail(\core_course_category $coursecat): string {
+        global $USER, $CFG;
+        require_once($CFG->libdir . '/completionlib.php');
+
+        $courses = $coursecat->get_courses([
+            'recursive' => true,
+            'summary' => true,
+            'coursecontacts' => false,
+            'limit' => 200,
+        ]);
+        $courselist = [];
+        $courseids = [];
+        foreach ($courses as $course) {
+            $courselist[] = $course;
+            $courseids[] = (int)$course->id;
+        }
+
+        $userid = (int)($USER->id ?? 0);
+        $progress = $this->compute_programme_progress($userid, $courseids);
+        $instructorcount = $this->get_programme_instructor_count($coursecat);
+
+        $display = $this->get_course_catalogue_display();
+        $perpage = $this->get_course_catalogue_perpage();
+        $page = max(0, optional_param('page', 0, PARAM_INT));
+        $totalcourses = count($courselist);
+        $maxpage = $totalcourses > 0 ? (int)floor(($totalcourses - 1) / $perpage) : 0;
+        $page = min($page, $maxpage);
+        $paged = array_slice($courselist, $page * $perpage, $perpage);
+
+        $output = html_writer::start_tag('div', ['class' => 'academi-course-index academi-programme-detail']);
+        $output .= $this->programme_hero($coursecat, $totalcourses, $progress, $instructorcount);
+        $output .= html_writer::start_tag('div', ['class' => 'course-catalogue-shell']);
+        $output .= $this->programme_toolbar($coursecat, $display, $perpage);
+
+        $continue = $this->find_programme_continue($progress);
+        if ($continue && !empty($courselist)) {
+            $bycourse = [];
+            foreach ($courselist as $c) {
+                $bycourse[(int)$c->id] = $c;
+            }
+            if (isset($bycourse[$continue['courseid']])) {
+                $output .= $this->programme_continue_card($bycourse[$continue['courseid']], $continue);
+            }
+        }
+
+        $output .= html_writer::tag('h3',
+            html_writer::tag('span', 'Courses in this programme',
+                ['class' => 'programme-courses-heading__label']) . ' ' .
+            html_writer::tag('span', number_format($totalcourses),
+                ['class' => 'programme-courses-heading__count']),
+            ['class' => 'programme-courses-heading']
+        );
+
+        $output .= $this->programme_course_list($paged, $progress['percourse'] ?? [], $display, $page * $perpage);
+        $output .= $this->course_catalogue_pagination($totalcourses, $page, $perpage, $display, 'all');
+
+        $output .= html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
+        return $output;
+    }
+
+    /**
+     * Render the programme detail hero block.
+     */
+    private function programme_hero(\core_course_category $coursecat, int $coursecount,
+            array $progress, int $instructorcount): string {
+        $name = $coursecat->get_formatted_name();
+        $chelper = new \coursecat_helper();
+        $desc = $this->course_catalogue_text($chelper->get_category_formatted_description($coursecat));
+        if ($desc === '') {
+            $desc = 'A focused learning pathway for Ministry of Health staff and health system partners.';
+        }
+
+        $crumb = html_writer::start_tag('nav', ['class' => 'programme-hero__crumb', 'aria-label' => 'Breadcrumb']);
+        $crumb .= html_writer::link(new moodle_url('/course/index.php'), 'All programmes');
+        $crumb .= html_writer::tag('span', '>',
+            ['class' => 'programme-hero__crumbsep', 'aria-hidden' => 'true']);
+        $crumb .= html_writer::tag('span', $name, ['class' => 'programme-hero__crumbactive']);
+        $crumb .= html_writer::end_tag('nav');
+
+        $badges = html_writer::start_tag('div', ['class' => 'programme-hero__badges']);
+        $badges .= html_writer::tag('span', 'Certified', ['class' => 'badge-certified']);
+        $badges .= html_writer::tag('span', 'CPD accredited', ['class' => 'badge-cpd']);
+        if (($progress['inprogress'] ?? 0) + ($progress['completed'] ?? 0) > 0) {
+            $badges .= html_writer::tag('span', 'Most popular', ['class' => 'badge-popular']);
+        }
+        $badges .= html_writer::end_tag('div');
+
+        $meta = html_writer::start_tag('div', ['class' => 'programme-hero__meta']);
+        $meta .= html_writer::tag('span', $coursecount . ' courses', ['class' => 'meta-courses']);
+        $meta .= html_writer::tag('span', 'Self-paced', ['class' => 'meta-duration']);
+        $meta .= html_writer::tag('span', 'All levels', ['class' => 'meta-level']);
+        $meta .= html_writer::tag('span',
+            html_writer::tag('span', 'KM') .
+            html_writer::tag('span', 'AC') .
+            html_writer::tag('span', 'TZ') .
+            html_writer::tag('span', 'RN') .
+            html_writer::tag('span', '+5'),
+            ['class' => 'meta-audience']
+        );
+        if ($instructorcount > 0) {
+            $meta .= html_writer::tag('span', $instructorcount . ' instructors',
+                ['class' => 'meta-instructors']);
+        }
+        $meta .= html_writer::end_tag('div');
+
+        $left = html_writer::start_tag('div', ['class' => 'programme-hero__main']);
+        $left .= $crumb;
+        $left .= $badges;
+        $left .= html_writer::tag('h2', $name, ['class' => 'programme-hero__title']);
+        $left .= html_writer::tag('p', $desc, ['class' => 'programme-hero__desc']);
+        $left .= $meta;
+        $left .= html_writer::end_tag('div');
+
+        $right = $this->programme_progress_card($progress);
+
+        $hero = html_writer::start_tag('div', ['class' => 'programme-hero']);
+        $hero .= html_writer::start_tag('div', ['class' => 'programme-hero__inner']);
+        $hero .= $left;
+        $hero .= $right;
+        $hero .= html_writer::end_tag('div');
+        $hero .= html_writer::end_tag('div');
+        return $hero;
+    }
+
+    /**
+     * Render the right-side "Your progress" card on the hero.
+     */
+    private function programme_progress_card(array $progress): string {
+        $total = max(1, (int)($progress['total'] ?? 0));
+        $completed = (int)($progress['completed'] ?? 0);
+        $inprogress = (int)($progress['inprogress'] ?? 0);
+        $percent = (int)round(($completed / $total) * 100);
+
+        $card = html_writer::start_tag('aside', ['class' => 'programme-progress-card']);
+        $card .= html_writer::tag('span', 'YOUR PROGRESS',
+            ['class' => 'programme-progress-card__label']);
+        $card .= html_writer::tag('div',
+            html_writer::tag('strong', $completed,
+                ['class' => 'programme-progress-card__count']) .
+            html_writer::tag('span', ' of ' . (int)($progress['total'] ?? 0) . ' courses complete',
+                ['class' => 'programme-progress-card__caption']),
+            ['class' => 'programme-progress-card__headline']
+        );
+        $card .= html_writer::tag('div',
+            html_writer::tag('div', '', [
+                'class' => 'programme-progress-card__barfill',
+                'style' => "width: {$percent}%;",
+            ]),
+            ['class' => 'programme-progress-card__bar', 'role' => 'progressbar',
+                'aria-valuenow' => $percent, 'aria-valuemin' => 0, 'aria-valuemax' => 100]
+        );
+        $stats = html_writer::tag('span', $percent . '% complete',
+            ['class' => 'programme-progress-card__percent']);
+        if ($inprogress > 0) {
+            $stats .= html_writer::tag('span', $inprogress . ' in progress',
+                ['class' => 'programme-progress-card__inprogress']);
+        }
+        $card .= html_writer::tag('div', $stats,
+            ['class' => 'programme-progress-card__stats']);
+
+        $continue = $this->find_programme_continue($progress);
+        $cta = null;
+        if ($continue) {
+            $cta = ['url' => new moodle_url('/course/view.php', ['id' => $continue['courseid']]),
+                    'label' => 'Resume learning'];
+        } else {
+            foreach (($progress['percourse'] ?? []) as $cid => $entry) {
+                if ($entry['status'] === 'notstarted') {
+                    $cta = ['url' => new moodle_url('/course/view.php', ['id' => $cid]),
+                            'label' => 'Start learning'];
+                    break;
+                }
+            }
+        }
+        if ($cta) {
+            $card .= html_writer::link($cta['url'],
+                html_writer::tag('span', '▶', ['class' => 'programme-progress-card__btnicon',
+                    'aria-hidden' => 'true']) . ' ' . $cta['label'],
+                ['class' => 'programme-progress-card__btn']);
+        }
+
+        $card .= html_writer::end_tag('aside');
+        return $card;
+    }
+
+    /**
+     * Render the toolbar above the module list.
+     */
+    private function programme_toolbar(\core_course_category $coursecat, string $display, int $perpage): string {
+        $toolbar = html_writer::start_tag('div', ['class' => 'programme-toolbar']);
+        $toolbar .= $this->programme_sibling_select($coursecat);
+        $toolbar .= html_writer::start_tag('form', [
+            'class' => 'programme-toolbar__search',
+            'action' => new moodle_url('/course/search.php'),
+            'method' => 'get',
+        ]);
+        $toolbar .= html_writer::tag('span', '', [
+            'class' => 'programme-toolbar__searchicon',
+            'aria-hidden' => 'true',
+        ]);
+        $toolbar .= html_writer::empty_tag('input', [
+            'type' => 'search',
+            'name' => 'q',
+            'placeholder' => 'Search courses in this programme',
+            'aria-label' => 'Search courses in this programme',
+        ]);
+        $toolbar .= html_writer::end_tag('form');
+        $toolbar .= html_writer::start_tag('div', ['class' => 'programme-toolbar__actions']);
+        $toolbar .= html_writer::tag('div',
+            html_writer::tag('span', 'Sort:', ['class' => 'programme-toolbar__sortlabel']) .
+            ' Standard order',
+            ['class' => 'programme-toolbar__sort']
+        );
+        $toolbar .= $this->course_catalogue_view_toggle($display, $perpage, 'all');
+        $toolbar .= html_writer::end_tag('div');
+        $toolbar .= html_writer::end_tag('div');
+        return $toolbar;
+    }
+
+    /**
+     * Build a category selector (jumps to a sibling programme).
+     */
+    private function programme_sibling_select(\core_course_category $coursecat): string {
+        $siblings = [$coursecat->id => $coursecat->get_formatted_name()];
+        if (!empty($coursecat->parent)) {
+            $parent = \core_course_category::get($coursecat->parent, IGNORE_MISSING);
+            if ($parent) {
+                $siblings = [];
+                foreach ($parent->get_children(['limit' => 0]) as $sib) {
+                    $siblings[$sib->id] = $sib->get_formatted_name();
+                }
+            }
+        }
+
+        $options = '';
+        foreach ($siblings as $sid => $sname) {
+            $url = new moodle_url('/course/index.php', ['categoryid' => $sid]);
+            $attrs = ['value' => $url->out(false)];
+            if ((int)$sid === (int)$coursecat->id) {
+                $attrs['selected'] = 'selected';
+            }
+            $options .= html_writer::tag('option', $sname, $attrs);
+        }
+
+        return html_writer::tag('select', $options, [
+            'class' => 'programme-toolbar__select',
+            'onchange' => 'if(this.value){window.location.href=this.value;}',
+            'aria-label' => 'Switch programme',
+        ]);
+    }
+
+    /**
+     * Render the "Continue where you left off" banner.
+     */
+    private function programme_continue_card($course, array $continue): string {
+        $name = method_exists($course, 'get_formatted_name')
+            ? $course->get_formatted_name()
+            : format_string($course->fullname);
+        $percent = (int)round((float)($continue['percent'] ?? 0));
+        $url = new moodle_url('/course/view.php', ['id' => (int)$continue['courseid']]);
+
+        $card = html_writer::start_tag('div', ['class' => 'programme-continue']);
+        $card .= html_writer::tag('div', '', [
+            'class' => 'programme-continue__icon',
+            'aria-hidden' => 'true',
+        ]);
+        $card .= html_writer::start_tag('div', ['class' => 'programme-continue__body']);
+        $card .= html_writer::tag('span', 'CONTINUE WHERE YOU LEFT OFF',
+            ['class' => 'programme-continue__eyebrow']);
+        $card .= html_writer::tag('h4', $name, ['class' => 'programme-continue__title']);
+        $card .= html_writer::end_tag('div');
+        $card .= html_writer::tag('div',
+            html_writer::tag('div', '', [
+                'class' => 'programme-continue__barfill',
+                'style' => "width: {$percent}%;",
+            ]),
+            ['class' => 'programme-continue__bar', 'role' => 'progressbar',
+                'aria-valuenow' => $percent, 'aria-valuemin' => 0, 'aria-valuemax' => 100]
+        );
+        $card .= html_writer::tag('span', $percent . '%',
+            ['class' => 'programme-continue__percent']);
+        $card .= html_writer::link($url,
+            html_writer::tag('span', '▶',
+                ['class' => 'programme-continue__btnicon', 'aria-hidden' => 'true']) . ' Resume',
+            ['class' => 'programme-continue__btn']);
+        $card .= html_writer::end_tag('div');
+        return $card;
+    }
+
+    /**
+     * Render the list of module cards.
+     */
+    private function programme_course_list(array $courses, array $percourse, string $display, int $offset): string {
+        if (empty($courses)) {
+            return html_writer::tag('div', get_string('nocourses'),
+                ['class' => 'course-catalogue-empty']);
+        }
+        $output = html_writer::start_tag('div',
+            ['class' => 'programme-course-list programme-course-list--' . $display]);
+        $i = 0;
+        foreach ($courses as $course) {
+            $position = $offset + $i + 1;
+            $entry = $percourse[(int)$course->id] ?? ['status' => 'notstarted', 'percent' => 0];
+            $output .= $this->programme_course_card($course, $entry, $position);
+            $i++;
+        }
+        $output .= html_writer::end_tag('div');
+        return $output;
+    }
+
+    /**
+     * Render a single module/course card.
+     */
+    private function programme_course_card($course, array $entry, int $position): string {
+        $variant = (($position - 1) % 6) + 1;
+        $name = method_exists($course, 'get_formatted_name')
+            ? $course->get_formatted_name()
+            : format_string($course->fullname);
+        $summary = $this->course_catalogue_text($course->summary ?? '');
+        if ($summary === '') {
+            $summary = 'A practical CPD course for Malawi health workers.';
+        }
+        $url = new moodle_url('/course/view.php', ['id' => (int)$course->id]);
+        $timecreated = (int)($course->timecreated ?? 0);
+        $isnew = $timecreated > 0 && (time() - $timecreated) < (30 * DAYSECS);
+        $lessoncount = $this->count_course_modules((int)$course->id);
+        $status = $entry['status'] ?? 'notstarted';
+        $percent = (int)round((float)($entry['percent'] ?? 0));
+
+        $output = html_writer::start_tag('article',
+            ['class' => 'programme-course-card programme-course-card--' . $status]);
+
+        $cover = html_writer::start_tag('div',
+            ['class' => 'programme-course-card__cover programme-course-card__cover--' . $variant]);
+        $cover .= html_writer::tag('span', 'Standard ' . $position,
+            ['class' => 'programme-course-card__coverlabel']);
+        $cover .= html_writer::tag('span', '', [
+            'class' => 'programme-course-card__covericon',
+            'aria-hidden' => 'true',
+        ]);
+        $cover .= html_writer::tag('span', 'COVER',
+            ['class' => 'programme-course-card__coverfoot']);
+        $cover .= html_writer::end_tag('div');
+        $output .= $cover;
+
+        $body = html_writer::start_tag('div', ['class' => 'programme-course-card__body']);
+
+        $badges = html_writer::start_tag('div', ['class' => 'programme-course-card__badges']);
+        if ($status !== 'notstarted') {
+            $badges .= html_writer::tag('span', 'Certified', ['class' => 'badge-certified']);
+        }
+        $badges .= html_writer::tag('span', 'CPD', ['class' => 'badge-cpd']);
+        if ($isnew) {
+            $badges .= html_writer::tag('span', 'New', ['class' => 'badge-new']);
+        }
+        $badges .= html_writer::end_tag('div');
+        $body .= $badges;
+
+        $body .= html_writer::tag('h4', html_writer::link($url, $name),
+            ['class' => 'programme-course-card__title']);
+        $body .= html_writer::tag('p', $summary,
+            ['class' => 'programme-course-card__desc']);
+
+        $meta = html_writer::start_tag('div', ['class' => 'programme-course-card__meta']);
+        $lessonlabel = $lessoncount === 1 ? '1 lesson' : $lessoncount . ' lessons';
+        $meta .= html_writer::tag('span', $lessonlabel, ['class' => 'meta-lessons']);
+        $meta .= html_writer::tag('span', 'Self-paced', ['class' => 'meta-duration']);
+        $meta .= html_writer::tag('span', 'All levels', ['class' => 'meta-level']);
+        $meta .= html_writer::tag('span',
+            html_writer::tag('span', 'KM') .
+            html_writer::tag('span', 'AC') .
+            html_writer::tag('span', 'TZ'),
+            ['class' => 'meta-audience']
+        );
+        $meta .= html_writer::end_tag('div');
+        $body .= $meta;
+
+        if ($status !== 'notstarted') {
+            $progress = html_writer::start_tag('div',
+                ['class' => 'programme-course-card__progress']);
+            $progress .= html_writer::tag('div',
+                html_writer::tag('div', '', [
+                    'class' => 'programme-course-card__progressfill',
+                    'style' => "width: {$percent}%;",
+                ]),
+                ['class' => 'programme-course-card__progressbar', 'role' => 'progressbar',
+                    'aria-valuenow' => $percent, 'aria-valuemin' => 0, 'aria-valuemax' => 100]
+            );
+            $progress .= html_writer::tag('span', $percent . '%',
+                ['class' => 'programme-course-card__progresspct']);
+            $progress .= html_writer::end_tag('div');
+            $body .= $progress;
+        }
+
+        $body .= html_writer::end_tag('div');
+        $output .= $body;
+
+        $action = html_writer::start_tag('div', ['class' => 'programme-course-card__action']);
+        if ($status === 'completed') {
+            $action .= html_writer::tag('span',
+                html_writer::tag('span', '✓ ', ['aria-hidden' => 'true']) . 'Completed',
+                ['class' => 'programme-course-card__completed']);
+        } else if ($status === 'inprogress') {
+            $action .= html_writer::link($url,
+                html_writer::tag('span', '▶ ', ['aria-hidden' => 'true']) . 'Continue',
+                ['class' => 'programme-course-card__continue']);
+        } else {
+            $action .= html_writer::link($url,
+                'Start course ' . html_writer::tag('span', '→', ['aria-hidden' => 'true']),
+                ['class' => 'programme-course-card__start']);
+        }
+        $action .= html_writer::end_tag('div');
+        $output .= $action;
+
+        $output .= html_writer::end_tag('article');
+        return $output;
+    }
+
+    /**
+     * Compute per-course and aggregate progress for the current user.
+     *
+     * @param int $userid
+     * @param int[] $courseids
+     * @return array
+     */
+    private function compute_programme_progress(int $userid, array $courseids): array {
+        global $DB;
+        $result = [
+            'total' => count($courseids),
+            'completed' => 0,
+            'inprogress' => 0,
+            'notstarted' => 0,
+            'percourse' => [],
+        ];
+        if (empty($courseids)) {
+            return $result;
+        }
+        if ($userid <= 0 || isguestuser($userid)) {
+            $result['notstarted'] = count($courseids);
+            foreach ($courseids as $cid) {
+                $result['percourse'][$cid] = ['status' => 'notstarted', 'percent' => 0, 'lastaccess' => 0];
+            }
+            return $result;
+        }
+
+        list($insql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'cid');
+        $params['userid'] = $userid;
+
+        $enrolledset = [];
+        $enrolsql = "SELECT DISTINCT e.courseid
+                       FROM {user_enrolments} ue
+                       JOIN {enrol} e ON e.id = ue.enrolid
+                      WHERE ue.userid = :userid
+                        AND e.courseid $insql";
+        foreach ($DB->get_fieldset_sql($enrolsql, $params) as $cid) {
+            $enrolledset[(int)$cid] = true;
+        }
+
+        $completions = $DB->get_records_sql(
+            "SELECT cc.course, cc.timecompleted
+               FROM {course_completions} cc
+              WHERE cc.userid = :userid AND cc.course $insql",
+            $params
+        );
+
+        $lastaccess = [];
+        foreach ($DB->get_records_sql(
+            "SELECT courseid, timeaccess FROM {user_lastaccess}
+              WHERE userid = :userid AND courseid $insql", $params) as $row) {
+            $lastaccess[(int)$row->courseid] = (int)$row->timeaccess;
+        }
+
+        foreach ($courseids as $cid) {
+            $cid = (int)$cid;
+            $entry = ['status' => 'notstarted', 'percent' => 0,
+                      'lastaccess' => $lastaccess[$cid] ?? 0];
+            if (isset($completions[$cid]) && !empty($completions[$cid]->timecompleted)) {
+                $entry['status'] = 'completed';
+                $entry['percent'] = 100;
+                $result['completed']++;
+            } else if (isset($enrolledset[$cid])) {
+                $entry['status'] = 'inprogress';
+                $entry['percent'] = $this->safe_course_progress_percent($cid, $userid);
+                $result['inprogress']++;
+            } else {
+                $result['notstarted']++;
+            }
+            $result['percourse'][$cid] = $entry;
+        }
+        return $result;
+    }
+
+    /**
+     * Calculate course completion percentage with safe fallbacks.
+     */
+    private function safe_course_progress_percent(int $courseid, int $userid): int {
+        try {
+            $course = get_course($courseid);
+            $percent = \core_completion\progress::get_course_progress_percentage($course, $userid);
+            if ($percent !== null) {
+                return (int)round((float)$percent);
+            }
+        } catch (\Throwable $e) {
+            // Swallow — fall through.
+        }
+        return 0;
+    }
+
+    /**
+     * Find the most recently accessed in-progress course.
+     */
+    private function find_programme_continue(array $progress): ?array {
+        $best = null;
+        foreach (($progress['percourse'] ?? []) as $cid => $entry) {
+            if (($entry['status'] ?? '') !== 'inprogress') {
+                continue;
+            }
+            if ($best === null || ($entry['lastaccess'] ?? 0) > ($best['lastaccess'] ?? 0)) {
+                $best = ['courseid' => (int)$cid] + $entry;
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * Count teachers across visible courses in this category (and descendants).
+     */
+    private function get_programme_instructor_count(\core_course_category $coursecat): int {
+        global $DB;
+        $params = [
+            'siteid' => SITEID,
+            'categoryid' => $coursecat->id,
+            'categorypath' => $coursecat->path . '/%',
+            'contextlevel' => CONTEXT_COURSE,
+        ];
+        $sql = "SELECT COUNT(DISTINCT ra.userid)
+                  FROM {role_assignments} ra
+                  JOIN {context} ctx ON ctx.id = ra.contextid AND ctx.contextlevel = :contextlevel
+                  JOIN {course} c ON c.id = ctx.instanceid
+                  JOIN {course_categories} cc ON cc.id = c.category
+                  JOIN {role} r ON r.id = ra.roleid
+                 WHERE c.visible = 1
+                   AND c.id <> :siteid
+                   AND (cc.id = :categoryid OR cc.path LIKE :categorypath)
+                   AND r.archetype IN ('editingteacher', 'teacher')";
+        return (int)$DB->count_records_sql($sql, $params);
+    }
+
+    /**
+     * Count visible activity modules within a course.
+     */
+    private function count_course_modules(int $courseid): int {
+        try {
+            $modinfo = get_fast_modinfo($courseid);
+            $count = 0;
+            foreach ($modinfo->get_cms() as $cm) {
+                if ($cm->uservisible && !$cm->deletioninprogress) {
+                    $count++;
+                }
+            }
+            return $count;
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     /**
