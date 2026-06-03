@@ -320,6 +320,7 @@ class course_renderer extends \core_course_renderer {
         $categorycount = $coursecat->get_children_count();
         $cards = $this->get_course_catalogue_cards($coursecat);
         $programmecount = $categorycount ?: count($cards);
+        $enrolledhealthworkers = $this->get_enrolled_health_worker_count($coursecat);
         $display = $this->get_course_catalogue_display();
         $perpage = $this->get_course_catalogue_perpage();
         $page = max(0, optional_param('page', 0, PARAM_INT));
@@ -329,7 +330,7 @@ class course_renderer extends \core_course_renderer {
         $pagedcards = array_slice($cards, $page * $perpage, $perpage);
 
         $output = html_writer::start_tag('div', ['class' => 'academi-course-index']);
-        $output .= $this->course_catalogue_hero($coursecount, $programmecount);
+        $output .= $this->course_catalogue_hero($coursecount, $programmecount, $enrolledhealthworkers);
         $output .= html_writer::start_tag('div', ['class' => 'course-catalogue-shell']);
         $output .= $this->course_catalogue_controls($totalcards, $display, $perpage);
         $output .= $this->course_catalogue_cards($pagedcards, $display);
@@ -345,9 +346,10 @@ class course_renderer extends \core_course_renderer {
      *
      * @param int $coursecount Number of courses.
      * @param int $programmecount Number of programmes.
+     * @param int $enrolledhealthworkers Number of enrolled health workers.
      * @return string
      */
-    private function course_catalogue_hero(int $coursecount, int $programmecount): string {
+    private function course_catalogue_hero(int $coursecount, int $programmecount, int $enrolledhealthworkers): string {
         $stats = html_writer::start_tag('dl', ['class' => 'course-index-hero__stats']);
         $stats .= html_writer::tag('div',
             html_writer::tag('dt', get_string('courses')) .
@@ -359,7 +361,7 @@ class course_renderer extends \core_course_renderer {
         );
         $stats .= html_writer::tag('div',
             html_writer::tag('dt', 'Enrolled health workers') .
-            html_writer::tag('dd', '8,400+')
+            html_writer::tag('dd', number_format($enrolledhealthworkers))
         );
         $stats .= html_writer::tag('div',
             html_writer::tag('dt', 'Accredited') .
@@ -558,6 +560,51 @@ class course_renderer extends \core_course_renderer {
             ['class' => 'meta-audience']
         );
         return $meta;
+    }
+
+    /**
+     * Count distinct active enrolled users in the current catalogue scope.
+     *
+     * @param \core_course_category $coursecat Category to inspect.
+     * @return int
+     */
+    private function get_enrolled_health_worker_count(\core_course_category $coursecat): int {
+        global $DB;
+
+        $now = round(time(), -2);
+        $params = [
+            'enrolenabled' => ENROL_INSTANCE_ENABLED,
+            'useractive' => ENROL_USER_ACTIVE,
+            'now1' => $now,
+            'now2' => $now,
+            'siteid' => SITEID,
+        ];
+        $categorywhere = '';
+
+        if (!empty($coursecat->id)) {
+            $categorywhere = ' AND (cc.id = :categoryid OR cc.path LIKE :categorypath)';
+            $params['categoryid'] = $coursecat->id;
+            $params['categorypath'] = $coursecat->path . '/%';
+        }
+
+        $sql = "SELECT COUNT(DISTINCT ue.userid)
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                  JOIN {course} c ON c.id = e.courseid
+                  JOIN {course_categories} cc ON cc.id = c.category
+                  JOIN {user} u ON u.id = ue.userid
+                 WHERE e.status = :enrolenabled
+                   AND ue.status = :useractive
+                   AND ue.timestart < :now1
+                   AND (ue.timeend = 0 OR ue.timeend > :now2)
+                   AND c.id <> :siteid
+                   AND c.visible = 1
+                   AND cc.visible = 1
+                   AND u.deleted = 0
+                   AND u.suspended = 0
+                   {$categorywhere}";
+
+        return (int)$DB->count_records_sql($sql, $params);
     }
 
     /**
