@@ -323,6 +323,8 @@ class course_renderer extends \core_course_renderer {
         $enrolledhealthworkers = $this->get_enrolled_health_worker_count($coursecat);
         $display = $this->get_course_catalogue_display();
         $perpage = $this->get_course_catalogue_perpage();
+        $filter = $this->get_course_catalogue_filter();
+        $cards = $this->apply_course_catalogue_filter($cards, $filter);
         $page = max(0, optional_param('page', 0, PARAM_INT));
         $totalcards = count($cards);
         $maxpage = $totalcards > 0 ? (int)floor(($totalcards - 1) / $perpage) : 0;
@@ -332,9 +334,9 @@ class course_renderer extends \core_course_renderer {
         $output = html_writer::start_tag('div', ['class' => 'academi-course-index']);
         $output .= $this->course_catalogue_hero($coursecount, $programmecount, $enrolledhealthworkers);
         $output .= html_writer::start_tag('div', ['class' => 'course-catalogue-shell']);
-        $output .= $this->course_catalogue_controls($totalcards, $display, $perpage);
+        $output .= $this->course_catalogue_controls($totalcards, $display, $perpage, $filter);
         $output .= $this->course_catalogue_cards($pagedcards, $display);
-        $output .= $this->course_catalogue_pagination($totalcards, $page, $perpage, $display);
+        $output .= $this->course_catalogue_pagination($totalcards, $page, $perpage, $display, $filter);
         $output .= html_writer::end_tag('div');
         $output .= html_writer::end_tag('div');
 
@@ -409,18 +411,28 @@ class course_renderer extends \core_course_renderer {
      * @param int $perpage Cards per page.
      * @return string
      */
-    private function course_catalogue_controls(int $cardcount, string $display, int $perpage): string {
+    private function course_catalogue_controls(int $cardcount, string $display, int $perpage, string $filter): string {
+        $pills = [
+            'all' => 'All programmes',
+            'popular' => 'Most popular',
+            'recent' => 'Recently updated',
+        ];
+        $sortlabels = [
+            'all' => 'A-Z',
+            'popular' => 'Enrolments',
+            'recent' => 'Last updated',
+        ];
+
         $controls = html_writer::start_tag('div', ['class' => 'course-catalogue-toolbar']);
         $controls .= html_writer::start_tag('div', ['class' => 'course-catalogue-filters', 'aria-label' => 'Course filters']);
-        $controls .= html_writer::tag('span', 'All programmes', ['class' => 'catalogue-pill active']);
-        $controls .= html_writer::tag('span', 'Most popular', ['class' => 'catalogue-pill']);
-        $controls .= html_writer::tag('span', 'Recently updated', ['class' => 'catalogue-pill']);
-        $controls .= html_writer::tag('span', 'Certified', ['class' => 'catalogue-pill']);
+        foreach ($pills as $value => $label) {
+            $controls .= $this->course_catalogue_filter_pill($label, $value, $filter, $display, $perpage);
+        }
         $controls .= html_writer::end_tag('div');
         $controls .= html_writer::start_tag('div', ['class' => 'course-catalogue-actions']);
-        $controls .= $this->course_catalogue_view_toggle($display, $perpage);
+        $controls .= $this->course_catalogue_view_toggle($display, $perpage, $filter);
         $controls .= html_writer::tag('div',
-            html_writer::tag('span', 'Sort:', ['class' => 'course-catalogue-sort__label']) . ' A-Z',
+            html_writer::tag('span', 'Sort:', ['class' => 'course-catalogue-sort__label']) . ' ' . $sortlabels[$filter],
             ['class' => 'course-catalogue-sort']
         );
         $controls .= html_writer::end_tag('div');
@@ -431,13 +443,40 @@ class course_renderer extends \core_course_renderer {
     }
 
     /**
+     * Render a single filter pill as a link.
+     *
+     * @param string $label Pill label.
+     * @param string $value Filter value this pill represents.
+     * @param string $current Currently-active filter value.
+     * @param string $display Current display mode.
+     * @param int $perpage Cards per page.
+     * @return string
+     */
+    private function course_catalogue_filter_pill(string $label, string $value, string $current,
+            string $display, int $perpage): string {
+        $classes = ['catalogue-pill'];
+        if ($value === $current) {
+            $classes[] = 'active';
+        }
+        return html_writer::link($this->course_catalogue_url([
+            'display' => $display,
+            'perpage' => $perpage,
+            'filter' => $value,
+            'page' => 0,
+        ]), $label, [
+            'class' => implode(' ', $classes),
+            'aria-current' => $value === $current ? 'true' : null,
+        ]);
+    }
+
+    /**
      * Render card/list view toggle links.
      *
      * @param string $display Current display mode.
      * @param int $perpage Cards per page.
      * @return string
      */
-    private function course_catalogue_view_toggle(string $display, int $perpage): string {
+    private function course_catalogue_view_toggle(string $display, int $perpage, string $filter): string {
         $output = html_writer::start_tag('div', [
             'class' => 'course-catalogue-view-toggle',
             'aria-label' => 'Display format',
@@ -451,6 +490,7 @@ class course_renderer extends \core_course_renderer {
             $output .= html_writer::link($this->course_catalogue_url([
                 'display' => $mode,
                 'perpage' => $perpage,
+                'filter' => $filter,
                 'page' => 0,
             ]), $label, [
                 'class' => implode(' ', $classes),
@@ -512,7 +552,8 @@ class course_renderer extends \core_course_renderer {
      * @param string $display Current display mode.
      * @return string
      */
-    private function course_catalogue_pagination(int $total, int $page, int $perpage, string $display): string {
+    private function course_catalogue_pagination(int $total, int $page, int $perpage, string $display,
+            string $filter): string {
         if ($total <= $perpage) {
             return '';
         }
@@ -520,6 +561,7 @@ class course_renderer extends \core_course_renderer {
         $paging = $this->paging_bar($total, $page, $perpage, $this->course_catalogue_url([
             'display' => $display,
             'perpage' => $perpage,
+            'filter' => $filter,
         ]));
 
         return html_writer::tag('div', $paging, ['class' => 'course-catalogue-pagination']);
@@ -617,23 +659,27 @@ class course_renderer extends \core_course_renderer {
         $cards = [];
         $chelper = new \coursecat_helper();
         $children = $coursecat->get_children(['limit' => 0]);
-        foreach ($children as $child) {
-            $summary = $this->course_catalogue_text($chelper->get_category_formatted_description($child));
-            if ($summary === '') {
-                $summary = 'A focused learning pathway for Ministry of Health staff and health system partners.';
+        if (!empty($children)) {
+            $stats = $this->get_category_stats_batch(array_map(fn($c) => $c->id, $children),
+                array_map(fn($c) => $c->path, $children));
+            foreach ($children as $child) {
+                $summary = $this->course_catalogue_text($chelper->get_category_formatted_description($child));
+                if ($summary === '') {
+                    $summary = 'A focused learning pathway for Ministry of Health staff and health system partners.';
+                }
+                $stat = $stats[$child->id] ?? ['enrolcount' => 0, 'lastmodified' => 0];
+                $cards[] = [
+                    'name' => $child->get_formatted_name(),
+                    'summary' => $summary,
+                    'url' => new moodle_url('/course/index.php', ['categoryid' => $child->id]),
+                    'coursecount' => $child->get_courses_count(['recursive' => true]),
+                    'duration' => 'Self-paced',
+                    'level' => 'All levels',
+                    'certified' => true,
+                    'popularity' => $stat['enrolcount'],
+                    'timemodified' => $stat['lastmodified'],
+                ];
             }
-            $cards[] = [
-                'name' => $child->get_formatted_name(),
-                'summary' => $summary,
-                'url' => new moodle_url('/course/index.php', ['categoryid' => $child->id]),
-                'coursecount' => $child->get_courses_count(['recursive' => true]),
-                'duration' => 'Self-paced',
-                'level' => 'All levels',
-                'certified' => true,
-            ];
-        }
-
-        if (!empty($cards)) {
             return $cards;
         }
 
@@ -643,6 +689,11 @@ class course_renderer extends \core_course_renderer {
             'coursecontacts' => true,
             'limit' => 50,
         ]);
+        $courseids = [];
+        foreach ($courses as $course) {
+            $courseids[] = $course->id;
+        }
+        $coursestats = $this->get_course_enrolment_counts($courseids);
         foreach ($courses as $course) {
             $summary = $this->course_catalogue_text($course->summary ?? '');
             if ($summary === '') {
@@ -656,9 +707,106 @@ class course_renderer extends \core_course_renderer {
                 'duration' => 'Self-paced',
                 'level' => 'All levels',
                 'certified' => !empty($course->visible),
+                'popularity' => $coursestats[$course->id] ?? 0,
+                'timemodified' => (int)($course->timemodified ?? 0),
             ];
         }
 
+        return $cards;
+    }
+
+    /**
+     * Compute enrolment counts and last-modified timestamps for each category in one pass.
+     *
+     * @param int[] $catids Category ids in render order.
+     * @param string[] $paths Matching category paths (parallel to $catids).
+     * @return array<int, array{enrolcount:int,lastmodified:int}>
+     */
+    private function get_category_stats_batch(array $catids, array $paths): array {
+        global $DB;
+        $result = [];
+        foreach ($catids as $i => $catid) {
+            $path = $paths[$i] ?? '';
+            $params = [
+                'enrolenabled' => ENROL_INSTANCE_ENABLED,
+                'useractive' => ENROL_USER_ACTIVE,
+                'siteid' => SITEID,
+                'categoryid' => $catid,
+                'categorypath' => $path . '/%',
+            ];
+            $modsql = "SELECT MAX(c.timemodified)
+                         FROM {course} c
+                         JOIN {course_categories} cc ON cc.id = c.category
+                        WHERE c.id <> :siteid
+                          AND c.visible = 1
+                          AND (cc.id = :categoryid OR cc.path LIKE :categorypath)";
+            $lastmodified = (int)$DB->get_field_sql($modsql, $params);
+
+            $enrolsql = "SELECT COUNT(DISTINCT ue.userid)
+                           FROM {user_enrolments} ue
+                           JOIN {enrol} e ON e.id = ue.enrolid
+                           JOIN {course} c ON c.id = e.courseid
+                           JOIN {course_categories} cc ON cc.id = c.category
+                          WHERE e.status = :enrolenabled
+                            AND ue.status = :useractive
+                            AND c.id <> :siteid
+                            AND c.visible = 1
+                            AND (cc.id = :categoryid OR cc.path LIKE :categorypath)";
+            $enrolcount = (int)$DB->count_records_sql($enrolsql, $params);
+
+            $result[$catid] = ['enrolcount' => $enrolcount, 'lastmodified' => $lastmodified];
+        }
+        return $result;
+    }
+
+    /**
+     * Distinct active enrolment counts per course.
+     *
+     * @param int[] $courseids
+     * @return array<int, int>
+     */
+    private function get_course_enrolment_counts(array $courseids): array {
+        global $DB;
+        if (empty($courseids)) {
+            return [];
+        }
+        list($insql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'cid');
+        $params['enrolenabled'] = ENROL_INSTANCE_ENABLED;
+        $params['useractive'] = ENROL_USER_ACTIVE;
+
+        $sql = "SELECT e.courseid AS courseid, COUNT(DISTINCT ue.userid) AS enrolcount
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                 WHERE e.status = :enrolenabled
+                   AND ue.status = :useractive
+                   AND e.courseid $insql
+              GROUP BY e.courseid";
+        $rows = $DB->get_records_sql($sql, $params);
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int)$row->courseid] = (int)$row->enrolcount;
+        }
+        return $result;
+    }
+
+    /**
+     * Sort/filter cards according to the selected filter.
+     *
+     * @param array $cards Cards to process.
+     * @param string $filter Filter key (all, popular, recent, certified).
+     * @return array
+     */
+    private function apply_course_catalogue_filter(array $cards, string $filter): array {
+        if ($filter === 'popular') {
+            usort($cards, fn($a, $b) => ($b['popularity'] ?? 0) <=> ($a['popularity'] ?? 0)
+                ?: strcasecmp($a['name'] ?? '', $b['name'] ?? ''));
+            return $cards;
+        }
+        if ($filter === 'recent') {
+            usort($cards, fn($a, $b) => ($b['timemodified'] ?? 0) <=> ($a['timemodified'] ?? 0)
+                ?: strcasecmp($a['name'] ?? '', $b['name'] ?? ''));
+            return $cards;
+        }
         return $cards;
     }
 
@@ -697,6 +845,16 @@ class course_renderer extends \core_course_renderer {
             return 10;
         }
         return min($perpage, 50);
+    }
+
+    /**
+     * Get selected catalogue filter.
+     *
+     * @return string
+     */
+    private function get_course_catalogue_filter(): string {
+        $filter = optional_param('filter', 'all', PARAM_ALPHA);
+        return in_array($filter, ['all', 'popular', 'recent'], true) ? $filter : 'all';
     }
 
     /**

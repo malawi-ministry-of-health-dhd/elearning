@@ -317,6 +317,8 @@
         background: $white;
         font-size: .86rem;
         font-weight: 800;
+        text-decoration: none;
+        transition: background-color .15s ease, color .15s ease, border-color .15s ease;
 
         &:before {
             margin-right: 8px;
@@ -337,8 +339,11 @@
             content: '\f017';
         }
 
-        &:nth-child(4):before {
-            content: '\f058';
+        &:hover,
+        &:focus {
+            border-color: #204a87;
+            color: #204a87;
+            text-decoration: none;
         }
 
         &.active {
@@ -347,6 +352,11 @@
             background: #204a87;
 
             &:before {
+                color: $white;
+            }
+
+            &:hover,
+            &:focus {
                 color: $white;
             }
         }
