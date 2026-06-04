@@ -535,7 +535,7 @@ class course_renderer extends \core_course_renderer {
             $output .= html_writer::tag('p', $card['summary']);
             $output .= html_writer::tag('div', $this->course_catalogue_meta($card), ['class' => 'catalogue-card-meta']);
             $output .= html_writer::end_tag('div');
-            $output .= html_writer::link($card['url'], 'View programme ' . html_writer::tag('span', '->', ['aria-hidden' => 'true']), [
+            $output .= html_writer::link($card['url'], 'View modules ' . html_writer::tag('span', '->', ['aria-hidden' => 'true']), [
                 'class' => 'catalogue-card-action',
             ]);
             $output .= html_writer::end_tag('div');
@@ -1319,7 +1319,7 @@ class course_renderer extends \core_course_renderer {
                 ['class' => 'programme-course-card__continue']);
         } else {
             $action .= html_writer::link($url,
-                'Start course ' . html_writer::tag('span', '→', ['aria-hidden' => 'true']),
+                'Start module ' . html_writer::tag('span', '→', ['aria-hidden' => 'true']),
                 ['class' => 'programme-course-card__start']);
         }
         $action .= html_writer::end_tag('div');
