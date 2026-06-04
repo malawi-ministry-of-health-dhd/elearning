@@ -1101,7 +1101,7 @@ class course_renderer extends \core_course_renderer {
      */
     private function programme_toolbar(\core_course_category $coursecat, string $display, int $perpage): string {
         $toolbar = html_writer::start_tag('div', ['class' => 'programme-toolbar']);
-        $toolbar .= $this->programme_sibling_select($coursecat);
+        $toolbar .= $this->programme_category_select($coursecat);
         $toolbar .= html_writer::start_tag('form', [
             'class' => 'programme-toolbar__search',
             'action' => new moodle_url('/course/search.php'),
@@ -1131,28 +1131,30 @@ class course_renderer extends \core_course_renderer {
     }
 
     /**
-     * Build a category selector (jumps to a sibling programme).
+     * Build a category selector that lists every visible category the user
+     * can browse. Picking one navigates to that category's index page.
      */
-    private function programme_sibling_select(\core_course_category $coursecat): string {
-        $siblings = [$coursecat->id => $coursecat->get_formatted_name()];
-        if (!empty($coursecat->parent)) {
-            $parent = \core_course_category::get($coursecat->parent, IGNORE_MISSING);
-            if ($parent) {
-                $siblings = [];
-                foreach ($parent->get_children(['limit' => 0]) as $sib) {
-                    $siblings[$sib->id] = $sib->get_formatted_name();
-                }
-            }
+    private function programme_category_select(\core_course_category $coursecat): string {
+        $categories = \core_course_category::make_categories_list();
+        // Ensure the current category is present even if the cached list misses it.
+        if (!isset($categories[$coursecat->id])) {
+            $categories[$coursecat->id] = $coursecat->get_formatted_name();
         }
+        // Stable alphabetical ordering on the path.
+        asort($categories, SORT_NATURAL | SORT_FLAG_CASE);
 
         $options = '';
-        foreach ($siblings as $sid => $sname) {
-            $url = new moodle_url('/course/index.php', ['categoryid' => $sid]);
+        $allurl = new moodle_url('/course/index.php');
+        $options .= html_writer::tag('option', 'All programmes', [
+            'value' => $allurl->out(false),
+        ]);
+        foreach ($categories as $cid => $cname) {
+            $url = new moodle_url('/course/index.php', ['categoryid' => $cid]);
             $attrs = ['value' => $url->out(false)];
-            if ((int)$sid === (int)$coursecat->id) {
+            if ((int)$cid === (int)$coursecat->id) {
                 $attrs['selected'] = 'selected';
             }
-            $options .= html_writer::tag('option', $sname, $attrs);
+            $options .= html_writer::tag('option', $cname, $attrs);
         }
 
         return html_writer::tag('select', $options, [
