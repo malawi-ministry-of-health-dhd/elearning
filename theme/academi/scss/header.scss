@@ -442,8 +442,8 @@
 
 /* Header main */
 .header-main {
-    background: $primary;
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    background: $white;
+    border-bottom: 1px solid $color_whisper;
     padding: 5px 0;
     .navbar-toggler {
         float: right;
@@ -457,7 +457,7 @@
             content: '\f0c9';
             font-family: fontawesome;
             font-size: 30px;
-            color: $white;
+            color: $primary;
         }
         &.nocontent-navbar {
             display: none;
@@ -476,21 +476,10 @@
                     align-items: center;
                     .nav-link {
                         height: 40px;
-                        color: $white;
                         border: 0;
-                        &:hover,
-                        &:focus {
-                            color: rgba(255, 255, 255, .8);
-                        }
                         &.active {
-                            color: $white;
-                            border-color: $white;
-                        }
-                    }
-                    .dropdown-toggle {
-                        color: $white;
-                        &:after {
-                            color: $white;
+                            color: $primary;
+                            border-color: $primary;
                         }
                     }
                     .dropdown-menu {
@@ -527,6 +516,22 @@
             }
         }
     }
+}
+
+/* Top-bar / nav-bar overrides per design spec. */
+.navbar-nav li a[href*="courses.php"] {
+    display: none !important;
+}
+
+.navbar {
+    background-color: black !important;
+}
+
+#page-header,
+#page-header .navbar,
+.header-main,
+.header-main .navbar {
+    background-color: #ffffff !important;
 }
 .header-main {
     .infoarea {
