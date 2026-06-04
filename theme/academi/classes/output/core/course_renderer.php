@@ -1131,30 +1131,36 @@ class course_renderer extends \core_course_renderer {
     }
 
     /**
-     * Build a category selector that lists every visible category the user
-     * can browse. Picking one navigates to that category's index page.
+     * Build a category selector listing top-level categories only. The
+     * top-most ancestor of the current category is preselected so the
+     * breadcrumb (All programmes > Current) stays in sync.
      */
     private function programme_category_select(\core_course_category $coursecat): string {
-        $categories = \core_course_category::make_categories_list();
-        // Ensure the current category is present even if the cached list misses it.
-        if (!isset($categories[$coursecat->id])) {
-            $categories[$coursecat->id] = $coursecat->get_formatted_name();
+        // Walk up to the top-level ancestor of the current category.
+        $topancestor = $coursecat;
+        while (!empty($topancestor->parent)) {
+            $parent = \core_course_category::get($topancestor->parent, IGNORE_MISSING);
+            if (!$parent || empty($parent->id)) {
+                break;
+            }
+            $topancestor = $parent;
         }
-        // Stable alphabetical ordering on the path.
-        asort($categories, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $top = \core_course_category::top();
+        $children = $top->get_children(['limit' => 0]);
 
         $options = '';
         $allurl = new moodle_url('/course/index.php');
         $options .= html_writer::tag('option', 'All programmes', [
             'value' => $allurl->out(false),
         ]);
-        foreach ($categories as $cid => $cname) {
-            $url = new moodle_url('/course/index.php', ['categoryid' => $cid]);
+        foreach ($children as $child) {
+            $url = new moodle_url('/course/index.php', ['categoryid' => $child->id]);
             $attrs = ['value' => $url->out(false)];
-            if ((int)$cid === (int)$coursecat->id) {
+            if ((int)$child->id === (int)$topancestor->id) {
                 $attrs['selected'] = 'selected';
             }
-            $options .= html_writer::tag('option', $cname, $attrs);
+            $options .= html_writer::tag('option', $child->get_formatted_name(), $attrs);
         }
 
         return html_writer::tag('select', $options, [
