@@ -23,12 +23,14 @@ define([
     'jquery',
     'core/notification',
     'core/templates',
+    'core_user/repository',
     './common',
     './defaultconfig'
 ], function(
     $,
     Notification,
     Templates,
+    UserRepository,
     common,
     CFG
 ) {
@@ -111,8 +113,15 @@ define([
         $(SELECTOR.ONLYINSIGHT).each(function(index, insight) {
             order.push($(insight).data('id'));
         });
-        M.util.set_user_preference('local_edwiserreports_insights_order', JSON.stringify(order));
-        common.loader.hide(SELECTOR.CONTAINER);
+        UserRepository.setUserPreference('local_edwiserreports_insights_order', JSON.stringify(order))
+            .then(function() {
+                common.loader.hide(SELECTOR.CONTAINER);
+                return;
+            })
+            .catch(function(error) {
+                common.loader.hide(SELECTOR.CONTAINER);
+                Notification.exception(error);
+            });
     }
 
     /**

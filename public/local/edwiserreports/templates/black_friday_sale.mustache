@@ -11,11 +11,12 @@
     <img class="edwiser-graphics" src="{{graphics}}">
 </div>
 {{#js}}
-    require(['jquery'], function($) {
+    require(['jquery', 'core_user/repository', 'core/notification'], function($, UserRepository, Notification) {
         $(document).ready(function() {
             $('.banner-close').on('click', function() {
                 $('.black-friday-banner').remove();
-                M.util.set_user_preference($(this).data('preference'), true);
+                UserRepository.setUserPreference($(this).data('preference'), true)
+                    .catch(Notification.exception);
             });
         });
     });
