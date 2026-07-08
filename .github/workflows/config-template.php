@@ -45,7 +45,7 @@ $CFG->admin     = 'admin';
 $CFG->directorypermissions = 0777;
 
 // Debug options - possible to be controlled by flag in future.
-$CFG->debug = (E_ALL | E_STRICT); // DEBUG_DEVELOPER.
+$CFG->debug = (E_ALL); // DEBUG_DEVELOPER.
 $CFG->debugdisplay = 1;
 $CFG->debugstringids = 1; // Add strings=1 to url to get string ids.
 $CFG->perfdebug = 15;
@@ -57,6 +57,8 @@ $CFG->pathtophp = getenv('pathtophp');
 
 $CFG->phpunit_dataroot  = realpath(dirname(__DIR__)) . '/phpunitdata';
 $CFG->phpunit_prefix = 't_';
+
+$CFG->routerconfigured = true;
 
 define('TEST_EXTERNAL_FILES_HTTP_URL', 'http://localhost:8080');
 define('TEST_EXTERNAL_FILES_HTTPS_URL', 'http://localhost:8080');

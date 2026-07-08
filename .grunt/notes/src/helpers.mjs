@@ -14,6 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 import chalk from 'chalk';
+import branchName from 'current-git-branch';
 import { isStandardComponent, isCommunityComponent, rewritePlugintypeAsSubsystem } from './components.mjs';
 import { isValidNoteName } from './noteTypes.mjs';
 import logger from './logger.mjs';
@@ -57,6 +58,19 @@ export const formatIssueNumber = (input) => {
     }
 
     return input;
+};
+
+/**
+ * Get the issue number, based off current git branch name
+ *
+ * @returns {string|null}
+ */
+export const getIssueNumberFromBranchName = () => {
+    const issueNumber = String(branchName()).match(/^[a-zA-Z]*-\d+/);
+    if (issueNumber) {
+        return formatIssueNumber(issueNumber[0]);
+    }
+    return null;
 };
 
 /**
@@ -217,7 +231,7 @@ const getInitialMessageValue = (options) => {
 export const getCurrentVersion = async () => {
     const versionRegex = new RegExp(/^ *\$release *= *['\"](?<release>[^ \+]+\+?) *\(Build:.*/m);
     try {
-        const versionFile = await readFile('version.php', 'utf8');
+        const versionFile = await readFile('public/version.php', 'utf8');
         const match = versionFile.match(versionRegex);
         if (match) {
             return match.groups.release;

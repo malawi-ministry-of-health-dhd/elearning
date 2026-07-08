@@ -58,6 +58,7 @@ Options:
 --shortname=STRING    Name of the site
 --summary=STRING      The summary to be displayed on the front page
 --supportemail=STRING Email address for support and help.
+--noreplyemail=STRING Email address used for noreply.
 -h, --help            Print out this help
 
 Example:
@@ -65,7 +66,7 @@ Example:
 ";
 
 // Check that PHP is of a sufficient version as soon as possible.
-require_once(__DIR__.'/../../lib/phpminimumversionlib.php');
+require_once(dirname(__DIR__, 2) . '/public/lib/phpminimumversionlib.php');
 moodle_require_minimum_php_version();
 
 // Nothing to do if config.php does not exist
@@ -100,6 +101,7 @@ list($options, $unrecognized) = cli_get_params(
         'shortname'         => '',
         'summary'           => '',
         'supportemail'      => '',
+        'noreplyemail'      => '',
         'agree-license'     => false,
         'help'              => false
     ),
@@ -144,6 +146,12 @@ if (!empty($options['supportemail']) && !validate_email($options['supportemail']
         'option' => 'supportemail',
         'value' => $options['supportemail']
     ];
+    cli_error(get_string('cliincorrectvalueerror', 'admin', $a));
+}
+
+// Validate that the noreply address provided is valid.
+if (!empty($options['noreplyemail']) && !validate_email($options['noreplyemail'])) {
+    $a = (object)['option' => 'noreplyemail', 'value' => $options['noreplyemail']];
     cli_error(get_string('cliincorrectvalueerror', 'admin', $a));
 }
 

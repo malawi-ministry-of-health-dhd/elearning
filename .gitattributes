@@ -1,6 +1,10 @@
 **/yui/build/** -diff
 **/amd/build/** -diff
-lib/dml/oci_native_moodle_package.sql text eol=lf
+**/esm/build/** -diff
 **.js.map -diff
 **-min.js -diff
 **.min.js -diff
+
+# Remove composer lock file changes from standard diff views.
+/composer.lock -diff
+/lib/js/bundles/*/*.js -diff

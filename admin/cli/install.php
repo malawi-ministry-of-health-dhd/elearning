@@ -30,6 +30,7 @@
  */
 
 define('CLI_SCRIPT', true);
+define('NO_DEBUG_DISPLAY', false);
 
 // extra execution prevention - we can not just require config.php here
 if (isset($_SERVER['REMOTE_ADDR'])) {
@@ -76,6 +77,7 @@ Options:
 --adminemail=STRING   Email address for the moodle admin account.
 --sitepreset=STRING   Admin site preset to be applied during the installation process.
 --supportemail=STRING Email address for support and help.
+--noreplyemail=STRING Email address used for noreply.
 --upgradekey=STRING   The upgrade key to be set in the config.php, leave empty to not set it.
 --non-interactive     No interactive questions, installation fails if any
                       problem encountered.
@@ -102,7 +104,7 @@ if (file_exists($distrolibfile)) {
 }
 
 // Nothing to do if config.php exists
-$configfile = __DIR__.'/../../config.php';
+$configfile = dirname(__DIR__, 2).'/config.php';
 if (file_exists($configfile)) {
     require($configfile);
     require_once($CFG->libdir.'/clilib.php');
@@ -149,14 +151,15 @@ define('PHPUNIT_TEST', false);
 define('IGNORE_COMPONENT_CACHE', true);
 
 // Check that PHP is of a sufficient version as soon as possible.
-require_once(__DIR__.'/../../lib/phpminimumversionlib.php');
+require_once(dirname(__DIR__, 2) . '/public/lib/phpminimumversionlib.php');
 moodle_require_minimum_php_version();
 
 // set up configuration
 global $CFG;
 $CFG = new stdClass();
 $CFG->lang                 = 'en';
-$CFG->dirroot              = dirname(dirname(__DIR__));
+$CFG->root                 = dirname(__DIR__, 2);
+$CFG->dirroot              = $CFG->root . '/public';
 $CFG->libdir               = "$CFG->dirroot/lib";
 $CFG->wwwroot              = "http://localhost";
 $CFG->httpswwwroot         = $CFG->wwwroot;
@@ -165,7 +168,7 @@ $CFG->running_installer    = true;
 $CFG->early_install_lang   = true;
 $CFG->ostype               = (stristr(PHP_OS, 'win') && !stristr(PHP_OS, 'darwin')) ? 'WINDOWS' : 'UNIX';
 $CFG->dboptions            = array();
-$CFG->debug                = (E_ALL | E_STRICT);
+$CFG->debug                = (E_ALL);
 $CFG->debugdisplay         = true;
 $CFG->debugdeveloper       = true;
 
@@ -216,7 +219,6 @@ $databases = array('mysqli' => moodle_database::get_driver_instance('mysqli', 'n
                    'auroramysql' => moodle_database::get_driver_instance('auroramysql', 'native'),
                    'mariadb'=> moodle_database::get_driver_instance('mariadb', 'native'),
                    'pgsql'  => moodle_database::get_driver_instance('pgsql',  'native'),
-                   'oci'    => moodle_database::get_driver_instance('oci',    'native'),
                    'sqlsrv' => moodle_database::get_driver_instance('sqlsrv', 'native'), // MS SQL*Server PHP driver
                   );
 foreach ($databases as $type=>$database) {
@@ -254,6 +256,7 @@ list($options, $unrecognized) = cli_get_params(
         'adminemail'        => '',
         'sitepreset'        => '',
         'supportemail'      => '',
+        'noreplyemail'      => '',
         'upgradekey'        => '',
         'non-interactive'   => false,
         'agree-license'     => false,
@@ -560,7 +563,6 @@ do {
     if ($interactive) {
         cli_separator();
         cli_heading(get_string('dbprefix', 'install'));
-        //TODO: solve somehow the prefix trouble for oci.
         if ($options['prefix'] !== '') {
             $prompt = get_string('clitypevaluedefault', 'admin', $options['prefix']);
         } else {
@@ -749,6 +751,20 @@ if (!$skipdatabase) {
     // Validate that the support email address provided is valid.
     if (!empty($options['supportemail']) && !validate_email($options['supportemail'])) {
         $a = (object)['option' => 'supportemail', 'value' => $options['supportemail']];
+        cli_error(get_string('cliincorrectvalueerror', 'admin', $a));
+    }
+
+    // Ask for the noreply address.
+    if ($interactive) {
+        cli_separator();
+        cli_heading(get_string('clinoreplyemail', 'install'));
+        $prompt = get_string('clitypevaluedefault', 'admin', $options['noreplyemail']);
+        $options['noreplyemail'] = cli_input($prompt, $options['noreplyemail']);
+    }
+
+    // Validate that the noreply address provided is valid.
+    if (!empty($options['noreplyemail']) && !validate_email($options['noreplyemail'])) {
+        $a = (object)['option' => 'noreplyemail', 'value' => $options['noreplyemail']];
         cli_error(get_string('cliincorrectvalueerror', 'admin', $a));
     }
 }
