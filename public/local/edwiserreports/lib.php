@@ -35,6 +35,35 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot."/local/edwiserreports/locallib.php");
 
 /**
+ * Get the user preferences available to the core_user repository.
+ *
+ * @return array[] preferences configuration
+ */
+function local_edwiserreports_user_preferences(): array {
+    return [
+        'local_edwiserreports_insights_order' => [
+            'type' => PARAM_TEXT,
+            'null' => NULL_NOT_ALLOWED,
+            'permissioncallback' => [core_user::class, 'is_current_user'],
+        ],
+        'local_edwiserreports_bfs_pre_hide' => [
+            'choices' => [0, 1],
+            'type' => PARAM_BOOL,
+            'null' => NULL_NOT_ALLOWED,
+            'default' => 0,
+            'permissioncallback' => [core_user::class, 'is_current_user'],
+        ],
+        'local_edwiserreports_bfs_after_hide' => [
+            'choices' => [0, 1],
+            'type' => PARAM_BOOL,
+            'null' => NULL_NOT_ALLOWED,
+            'default' => 0,
+            'permissioncallback' => [core_user::class, 'is_current_user'],
+        ],
+    ];
+}
+
+/**
  * Get Users List Fragments for diffrent pages
  * @param [array] $args Array of arguments
  * @return [string] HTML table
