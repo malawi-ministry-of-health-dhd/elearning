@@ -1,0 +1,8 @@
+{
+    "subplugintypes": {
+        "customcertelement": "element"
+    },
+    "plugintypes": {
+        "customcertelement": "mod\/customcert\/element"
+    }
+}
