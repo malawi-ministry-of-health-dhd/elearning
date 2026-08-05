@@ -1,0 +1,146 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_mohhierarchy/sync_dashboard
+
+    Synchronisation dashboard: endpoints, counts, last outcomes and run history.
+
+    Context variables required for this template:
+    * endpoints - array of label and url
+    * tokenstate - whether a bearer token is configured, never the token
+    * counts - array of label and value
+    * lastsuccess, lastfailure - run summaries
+    * taskindicator - Moodle's live queued/running task progress indicator
+    * pending - whether a non-manual synchronisation is running
+    * syncurl, sesskey - POST action target and CSRF token
+    * runs - page of run summaries
+    * paging - rendered paging bar
+
+    Example context (json):
+    {
+        "endpoints": [{"label": "Zones endpoint", "url": "https://example.org/api/zones"}],
+        "tokenstate": "Not set",
+        "counts": [{"label": "Active zones", "value": 4}],
+        "lastsuccess": {"exists": false, "never": "Never"},
+        "lastfailure": {"exists": false, "never": "Never"},
+        "taskindicator": "",
+        "hastaskindicator": false,
+        "pending": false,
+        "pendingmessage": "A synchronisation is already queued.",
+        "syncurl": "#",
+        "hasruns": false,
+        "runs": [],
+        "paging": ""
+    }
+}}
+<div class="local-mohhierarchy-dashboard">
+
+    <h3>{{#str}} endpoints, local_mohhierarchy {{/str}}</h3>
+    <dl class="row">
+        {{#endpoints}}
+            <dt class="col-sm-3">{{label}}</dt>
+            <dd class="col-sm-9"><code>{{url}}</code></dd>
+        {{/endpoints}}
+        <dt class="col-sm-3">{{#str}} token, local_mohhierarchy {{/str}}</dt>
+        <dd class="col-sm-9">{{tokenstate}}</dd>
+    </dl>
+
+    <h3>{{#str}} currentcounts, local_mohhierarchy {{/str}}</h3>
+    <dl class="row">
+        {{#counts}}
+            <dt class="col-sm-3">{{label}}</dt>
+            <dd class="col-sm-9">{{value}}</dd>
+        {{/counts}}
+    </dl>
+
+    <h3>{{#str}} lastoutcomes, local_mohhierarchy {{/str}}</h3>
+    <dl class="row">
+        <dt class="col-sm-3">{{#str}} lastsuccess, local_mohhierarchy {{/str}}</dt>
+        <dd class="col-sm-9">
+            {{#lastsuccess.exists}}
+                {{lastsuccess.finished}} ({{lastsuccess.trigger}})
+            {{/lastsuccess.exists}}
+            {{^lastsuccess.exists}}{{lastsuccess.never}}{{/lastsuccess.exists}}
+        </dd>
+        <dt class="col-sm-3">{{#str}} lastfailure, local_mohhierarchy {{/str}}</dt>
+        <dd class="col-sm-9">
+            {{#lastfailure.exists}}
+                {{lastfailure.finished}} ({{lastfailure.trigger}})
+                <div class="text-danger">{{lastfailure.error}}</div>
+            {{/lastfailure.exists}}
+            {{^lastfailure.exists}}{{lastfailure.never}}{{/lastfailure.exists}}
+        </dd>
+    </dl>
+
+    {{#hastaskindicator}}
+        <div class="mb-3">{{{taskindicator}}}</div>
+    {{/hastaskindicator}}
+    {{#pending}}
+        <div class="alert alert-info" role="status">{{pendingmessage}}</div>
+    {{/pending}}
+    {{^hastaskindicator}}
+    {{^pending}}
+        <div class="mb-3">
+            <form action="{{syncurl}}" method="post">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="run" value="1">
+                <button type="submit" class="btn btn-primary">
+                    {{#str}} syncnow, local_mohhierarchy {{/str}}
+                </button>
+            </form>
+        </div>
+    {{/pending}}
+    {{/hastaskindicator}}
+
+    <h3>{{#str}} recentruns, local_mohhierarchy {{/str}}</h3>
+    {{#hasruns}}
+        <table class="generaltable">
+            <caption class="sr-only">{{#str}} recentruns, local_mohhierarchy {{/str}}</caption>
+            <thead>
+                <tr>
+                    <th scope="col">{{#str}} col:started, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:status, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:trigger, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:zones, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:districts, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:facilities, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:deactivated, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} col:error, local_mohhierarchy {{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#runs}}
+                    <tr>
+                        <td>{{started}}</td>
+                        <td>{{#failed}}<span class="text-danger">{{status}}</span>{{/failed}}{{^failed}}{{status}}{{/failed}}</td>
+                        <td>{{trigger}}</td>
+                        <td>{{zones}}</td>
+                        <td>{{districts}}</td>
+                        <td>{{facilities}}</td>
+                        <td>{{deactivated}}</td>
+                        <td>{{error}}</td>
+                    </tr>
+                {{/runs}}
+            </tbody>
+        </table>
+        <p class="text-muted">{{#str}} createdupdatedhint, local_mohhierarchy {{/str}}</p>
+        {{{paging}}}
+    {{/hasruns}}
+    {{^hasruns}}
+        <div class="alert alert-info" role="status">{{#str}} synclogempty, local_mohhierarchy {{/str}}</div>
+    {{/hasruns}}
+</div>

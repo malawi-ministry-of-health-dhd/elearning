@@ -1,0 +1,14 @@
+[
+  {
+    "district_name": "Dedza",
+    "district_code": "DE",
+    "zone_id": 2,
+    "id": 3
+  },
+  {
+    "district_name": "Nowhere",
+    "district_code": "NW",
+    "zone_id": 999,
+    "id": 5
+  }
+]

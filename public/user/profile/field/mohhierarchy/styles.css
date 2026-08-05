@@ -1,0 +1,24 @@
+/*
+ * Hierarchy placement controls.
+ *
+ * A fixed inline size prevents the form from jumping when a longer selected label replaces a
+ * shorter one. max-inline-size keeps the controls responsive on narrow screens.
+ */
+select.mohhierarchy-selector {
+    inline-size: 32rem;
+    max-inline-size: 100%;
+}
+
+.mohhierarchy-autocomplete {
+    flex: 0 1 32rem;
+    inline-size: 32rem;
+    max-inline-size: 100%;
+}
+
+.mohhierarchy-autocomplete .form-autocomplete-input,
+.mohhierarchy-autocomplete .form-autocomplete-selection,
+.mohhierarchy-autocomplete .form-autocomplete-suggestions,
+.mohhierarchy-autocomplete input[data-fieldtype="autocomplete"] {
+    inline-size: 100%;
+    max-inline-size: 100%;
+}

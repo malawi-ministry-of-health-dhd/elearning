@@ -1,0 +1,11 @@
+[
+  {
+    "zone_name": "Central East Zone",
+    "description": null,
+    "id": 1
+  },
+  {
+    "description": "This row has no zone_name.",
+    "id": 2
+  }
+]

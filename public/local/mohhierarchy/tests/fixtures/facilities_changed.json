@@ -1,0 +1,40 @@
+[
+  {
+    "facility_code": "MC010001",
+    "facility_code_dhis2": "DHIS-1001",
+    "facility_code_openlmis": null,
+    "facility_code_mapping": [
+      {
+        "url": "",
+        "code": "DHIS2 CODE",
+        "system": "DHIS2"
+      }
+    ],
+    "registration_number": "Reg No.",
+    "facility_name": "Dedza District Hospital (renamed)",
+    "common_name": "Dedza DH",
+    "facility_date_opened": "1975-01-01T00:00:00.000Z",
+    "facility_type_id": 9,
+    "facility_owner_id": 6,
+    "facility_operational_status_id": 1,
+    "facility_regulatory_status_id": 1,
+    "district_id": 3,
+    "client_id": 1,
+    "archived_date": null,
+    "published_date": "2019-06-25T14:40:37.000Z",
+    "created_at": "2019-06-25T14:40:37.000Z",
+    "updated_at": "2020-02-02T09:00:00.000Z",
+    "id": 1
+  },
+  {
+    "facility_name": "Salima Health Post",
+    "district_id": 4,
+    "id": 2
+  },
+  {
+    "facility_name": "Chipoka Dispensary",
+    "facility_code": "MC040002",
+    "district_id": 4,
+    "id": 6
+  }
+]

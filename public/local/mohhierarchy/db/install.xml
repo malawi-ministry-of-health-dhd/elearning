@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/mohhierarchy/db" VERSION="20260729" COMMENT="XMLDB file for local_mohhierarchy"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_mohh_zone" COMMENT="Local normalised copy of the remote zones.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="externalid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Zipatala zone id. Never used as a Moodle primary key."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Zone name as published remotely."/>
+        <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Optional remote description."/>
+        <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="0 when the zone is no longer published remotely. Rows are deactivated, never deleted."/>
+        <FIELD NAME="lastseen" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of the last sync run that saw this zone remotely."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="externalid" UNIQUE="true" FIELDS="externalid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_mohh_district" COMMENT="Local normalised copy of the remote districts. Each district belongs to exactly one zone.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="externalid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Zipatala district id. Never used as a Moodle primary key."/>
+        <FIELD NAME="zoneid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Local local_mohh_zone.id. Not null, so a district always belongs to exactly one zone."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="code" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Remote district code. Nullable because it is not always published."/>
+        <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="lastseen" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="zoneid" TYPE="foreign" FIELDS="zoneid" REFTABLE="local_mohh_zone" REFFIELDS="id" COMMENT="Foreign key to the zone. Moodle builds the supporting non-unique index on zoneid from this key."/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="externalid" UNIQUE="true" FIELDS="externalid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_mohh_facility" COMMENT="Local normalised copy of the remote facilities. Selected fields only; the full remote payload is not stored.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="externalid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Zipatala facility id. Never used as a Moodle primary key."/>
+        <FIELD NAME="districtid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Local local_mohh_district.id."/>
+        <FIELD NAME="code" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Zipatala facility code."/>
+        <FIELD NAME="codedhis2" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="DHIS2 code from facility_code_mapping."/>
+        <FIELD NAME="codeopenlmis" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="OpenLMIS code from facility_code_mapping."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="commonname" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="registrationnumber" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="facilitytypeid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Remote facility type id. Reference data, not a Moodle id."/>
+        <FIELD NAME="ownerid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Remote facility owner id. This is NOT a Moodle user id."/>
+        <FIELD NAME="operationalstatusid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Remote operational status id."/>
+        <FIELD NAME="regulatorystatusid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Remote regulatory status id."/>
+        <FIELD NAME="dateopened" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Unix timestamp, or null when the remote value is absent or unparseable."/>
+        <FIELD NAME="publishedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Unix timestamp, or null."/>
+        <FIELD NAME="remotecreatedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Remote created_at as a Unix timestamp, or null."/>
+        <FIELD NAME="remoteupdatedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Remote updated_at as a Unix timestamp, or null. Used to skip unchanged rows."/>
+        <FIELD NAME="codemappingjson" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="facility_code_mapping re-encoded as validated JSON. Only this sub-document is retained, because its keys vary by integration and cannot be columnised."/>
+        <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="lastseen" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="districtid" TYPE="foreign" FIELDS="districtid" REFTABLE="local_mohh_district" REFFIELDS="id" COMMENT="Foreign key to the district. Moodle builds the supporting non-unique index on districtid from this key."/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="externalid" UNIQUE="true" FIELDS="externalid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_mohh_assign" COMMENT="Canonical hierarchy assignment for a Moodle user. A user with no hierarchy has no row here; absence is valid.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Moodle user.id. At most one row per user."/>
+        <FIELD NAME="zoneid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Derived from facilityid. Denormalised for scope queries and kept consistent by the repository."/>
+        <FIELD NAME="districtid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Derived from facilityid."/>
+        <FIELD NAME="facilityid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user's facility. Mirrored into the profilefield_mohhierarchy field value."/>
+        <FIELD NAME="scopelevel" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="none" SEQUENCE="false" COMMENT="One of none, facility, district, zone. Validated by local_mohhierarchy\local\scope_level."/>
+        <FIELD NAME="assignedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user.id of the actor, or null for migration and automated repair."/>
+        <FIELD NAME="assignsource" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="userform" SEQUENCE="false" COMMENT="One of userform, admin, migration, repair, cli. Validated by local_mohhierarchy\local\assign_source."/>
+        <FIELD NAME="active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="0 when the assignment has been withdrawn. The row is retained for audit."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign-unique" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="One assignment per user. Moodle builds the unique index on userid from this key."/>
+        <KEY NAME="zoneid" TYPE="foreign" FIELDS="zoneid" REFTABLE="local_mohh_zone" REFFIELDS="id"/>
+        <KEY NAME="districtid" TYPE="foreign" FIELDS="districtid" REFTABLE="local_mohh_district" REFFIELDS="id"/>
+        <KEY NAME="facilityid" TYPE="foreign" FIELDS="facilityid" REFTABLE="local_mohh_facility" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="local_mohh_assignlog" COMMENT="Append-only history of assignment changes. Rows are never updated or automatically deleted.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Moodle user.id the assignment belongs to."/>
+        <FIELD NAME="assignmentid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="local_mohh_assign.id. Nullable and deliberately not a foreign key, so history outlives the assignment row."/>
+        <FIELD NAME="action" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="One of created, updated, deactivated, repaired. Validated by local_mohhierarchy\local\assign_action."/>
+        <FIELD NAME="olddata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON snapshot before the change, or null for a creation."/>
+        <FIELD NAME="newdata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON snapshot after the change, or null for a removal."/>
+        <FIELD NAME="changedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user.id of the actor, or null for automated changes."/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="assignmentid" UNIQUE="false" FIELDS="assignmentid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_mohh_synclog" COMMENT="One row per synchronisation run.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="running" SEQUENCE="false" COMMENT="One of running, success, failed. Validated by local_mohhierarchy\local\sync_status."/>
+        <FIELD NAME="triggerkind" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="scheduled" SEQUENCE="false" COMMENT="One of scheduled, manual, cli. Validated by local_mohhierarchy\local\sync_trigger."/>
+        <FIELD NAME="triggeredby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user.id for manual runs, null for scheduled and CLI runs."/>
+        <FIELD NAME="startedat" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="finishedat" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Null while the run is still in progress."/>
+        <FIELD NAME="zonescreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="zonesupdated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="districtscreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="districtsupdated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="facilitiescreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="facilitiesupdated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="itemsdeactivated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="errormessage" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

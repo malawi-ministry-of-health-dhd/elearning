@@ -1,0 +1,12 @@
+[
+  {
+    "zone_name": "Central East Zone",
+    "description": null,
+    "id": 1
+  },
+  {
+    "zone_name": "Central West Zone",
+    "description": "Covers the central west districts.",
+    "id": 2
+  }
+]

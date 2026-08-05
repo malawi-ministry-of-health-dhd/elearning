@@ -1,0 +1,18 @@
+[
+  {
+    "facility_code": "MC010001",
+    "registration_number": "Reg No.",
+    "facility_name": "Dedza District Hospital",
+    "common_name": "Dedza DH",
+    "facility_date_opened": "1975-01-01T00:00:00.000Z",
+    "facility_type_id": 9,
+    "facility_owner_id": 6,
+    "facility_operational_status_id": 1,
+    "facility_regulatory_status_id": 1,
+    "district_id": 3,
+    "published_date": "2019-06-25T14:40:37.000Z",
+    "created_at": "2019-06-25T14:40:37.000Z",
+    "updated_at": "2019-06-25T14:40:37.000Z",
+    "id": 1
+  }
+]

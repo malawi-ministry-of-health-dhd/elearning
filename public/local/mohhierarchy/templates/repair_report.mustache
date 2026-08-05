@@ -1,0 +1,42 @@
+{{!
+    @template local_mohhierarchy/repair_report
+
+    Consistency issues and safe repair status.
+}}
+<div class="local-mohhierarchy-repair">
+    <div class="row mb-3">
+        <div class="col-md-3"><strong>{{userschecked}}</strong><br>{{#str}} repairuserschecked, local_mohhierarchy {{/str}}</div>
+        <div class="col-md-3"><strong>{{fieldcount}}</strong><br>{{#str}} repairfieldinstances, local_mohhierarchy {{/str}}</div>
+        <div class="col-md-3"><strong>{{repairable}}</strong><br>{{#str}} repairsafecount, local_mohhierarchy {{/str}}</div>
+        <div class="col-md-3"><strong>{{conflicts}}</strong><br>{{#str}} repairreviewcount, local_mohhierarchy {{/str}}</div>
+    </div>
+    {{#hasissues}}
+        <table class="generaltable">
+            <caption class="sr-only">{{#str}} consistencyrepair, local_mohhierarchy {{/str}}</caption>
+            <thead>
+                <tr>
+                    <th scope="col">{{#str}} user, core {{/str}}</th>
+                    <th scope="col">{{#str}} repairissue, local_mohhierarchy {{/str}}</th>
+                    <th scope="col">{{#str}} description, core {{/str}}</th>
+                    <th scope="col">{{#str}} status, core {{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#rows}}
+                    <tr>
+                        <td><strong>{{fullname}}</strong>{{#username}}<div class="small text-muted">{{username}}</div>{{/username}}</td>
+                        <td>{{code}}</td>
+                        <td>{{detail}}</td>
+                        <td>
+                            {{#repairable}}<span class="badge badge-info">{{status}}</span>{{/repairable}}
+                            {{^repairable}}<span class="badge badge-warning">{{status}}</span>{{/repairable}}
+                        </td>
+                    </tr>
+                {{/rows}}
+            </tbody>
+        </table>
+    {{/hasissues}}
+    {{^hasissues}}
+        <div class="alert alert-success" role="status">{{#str}} repairconsistent, local_mohhierarchy {{/str}}</div>
+    {{/hasissues}}
+</div>

@@ -1,0 +1,12 @@
+[
+  {
+    "zone_name": "Central East Zone",
+    "description": null,
+    "id": 1
+  },
+  {
+    "zone_name": "Central East Zone (duplicate row)",
+    "description": null,
+    "id": 1
+  }
+]

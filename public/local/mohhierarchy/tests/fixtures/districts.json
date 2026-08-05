@@ -1,0 +1,14 @@
+[
+  {
+    "district_name": "Dedza",
+    "district_code": "DE",
+    "zone_id": 2,
+    "id": 3
+  },
+  {
+    "district_name": "Salima",
+    "district_code": null,
+    "zone_id": 1,
+    "id": 4
+  }
+]
