@@ -105,6 +105,7 @@ $string['facilitiesendpoint_desc'] = 'Facilities path, relative to the base URL,
 $string['facility'] = 'Facility';
 $string['facility_help'] = 'The zone and district are derived from this facility and cannot be submitted separately.';
 $string['facilitycode'] = 'Facility code';
+$string['facilityinactivecurrent'] = '{$a} (inactive current assignment)';
 $string['generatedpasswordmailfailed'] = 'The account was created and its password was generated, but Moodle could not deliver the password email. Use Moodle\'s standard password reset process.';
 $string['hierarchybrowser'] = 'Hierarchy browser';
 $string['hierarchyownednotice'] = 'These hierarchy records are read-only and owned by the Zipatala synchronisation. Make corrections in Zipatala, then synchronise again.';

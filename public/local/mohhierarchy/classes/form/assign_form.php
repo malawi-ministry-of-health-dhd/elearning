@@ -23,8 +23,9 @@ use local_mohhierarchy\local\scope_level;
  * Assign one user to a facility, with a scope level.
  *
  * The facility list and the scope menu are both built from what the acting administrator is allowed
- * to do, and both are re-checked in validation, so a tampered submission cannot widen either. The
- * zone and district are not offered at all: they are derived from the facility on save.
+ * to do, and both are re-checked in validation, so a tampered submission cannot widen either.
+ * Zone and District are displayed for context and populated by the searchable Facility control;
+ * the assignment service still derives them from Facility again on save.
  *
  * @package    local_mohhierarchy
  * @copyright  2026 Ministry of Health
@@ -33,6 +34,8 @@ use local_mohhierarchy\local\scope_level;
 class assign_form extends \moodleform {
     #[\Override]
     public function definition() {
+        global $PAGE;
+
         $mform = $this->_form;
         // The user being assigned.
         $target = $this->_customdata['target'];
@@ -50,13 +53,46 @@ class assign_form extends \moodleform {
 
         $mform->addElement(
             'select',
+            'zoneid',
+            get_string('zone', 'local_mohhierarchy'),
+            ['' => get_string('choosedots')] + $this->_customdata['zones'],
+            ['class' => 'mohhierarchy-selector'],
+        );
+        $mform->setType('zoneid', PARAM_INT);
+
+        $mform->addElement(
+            'select',
+            'districtid',
+            get_string('district', 'local_mohhierarchy'),
+            ['' => get_string('choosedots')] + $this->_customdata['districts'],
+            ['class' => 'mohhierarchy-selector'],
+        );
+        $mform->setType('districtid', PARAM_INT);
+
+        $mform->addElement(
+            'autocomplete',
             'facilityid',
             get_string('facility', 'local_mohhierarchy'),
-            ['' => get_string('choosedots')] + $facilities,
+            $facilities,
+            [
+                'class' => 'mohhierarchy-selector',
+                'placeholder' => get_string('search'),
+                'noselectionstring' => get_string('choosedots'),
+            ],
         );
         $mform->setType('facilityid', PARAM_INT);
         $mform->addRule('facilityid', get_string('required'), 'required', null, 'client');
         $mform->addHelpButton('facilityid', 'facility', 'local_mohhierarchy');
+
+        $PAGE->requires->js_call_amd('profilefield_mohhierarchy/hierarchy', 'init', [[
+            'zoneElement' => 'zoneid',
+            'districtElement' => 'districtid',
+            'facilityElement' => 'facilityid',
+            'zoneFixed' => false,
+            'districtFixed' => false,
+            'facilityFixed' => false,
+            'facilityPaths' => $this->_customdata['facilitypaths'],
+        ]]);
 
         $scopemenu = [];
         foreach ($scopes as $scope) {

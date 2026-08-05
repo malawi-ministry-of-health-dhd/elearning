@@ -120,6 +120,18 @@ class profile_field_mohhierarchy extends profile_field_base {
             'nofacilities',
             true,
         );
+        if ((int) $this->userid <= 0) {
+            // Facility is the canonical placement value. Requiring it also guarantees that Zone
+            // and District can be derived, while edit_validate_field() repeats the check on the
+            // server in case client-side validation is bypassed.
+            $mform->addRule(
+                $this->inputname,
+                get_string('error:facilityrequired', 'profilefield_mohhierarchy'),
+                'required',
+                null,
+                'client',
+            );
+        }
 
         $PAGE->requires->js_call_amd('profilefield_mohhierarchy/hierarchy', 'init', [[
             'zoneElement' => $zoneelement,
@@ -176,7 +188,9 @@ class profile_field_mohhierarchy extends profile_field_base {
             return;
         }
 
-        $withplaceholder = ($isfixed || $searchable)
+        // Select and autocomplete controls both need a real empty option. Without it, the browser
+        // selects the first Facility and the hierarchy JavaScript consequently fills its parents.
+        $withplaceholder = $isfixed
             ? $choices
             : ['' => get_string('select' . $labelkey, 'profilefield_mohhierarchy')] + $choices;
 
@@ -291,15 +305,19 @@ class profile_field_mohhierarchy extends profile_field_base {
         global $USER;
 
         $errors = [];
+        $targetuserid = (int) ($usernew->id ?? $this->userid);
+        $iscreating = $targetuserid <= 0;
         if (!property_exists($usernew, $this->inputname)) {
-            // The field was not part of this form; nothing to validate.
+            // An editable new-user form cannot bypass placement by omitting the input entirely.
+            // Forms where this field is genuinely unavailable remain unaffected.
+            if ($iscreating && $this->is_editable()) {
+                $errors[$this->inputname] = get_string('error:facilityrequired', 'profilefield_mohhierarchy');
+            }
             return $errors;
         }
 
         $options = $this->options();
         $submitted = $options->clean_facility_id($usernew->{$this->inputname});
-        $targetuserid = (int) ($usernew->id ?? $this->userid);
-        $iscreating = $targetuserid <= 0;
         $existing = $iscreating ? null : $this->assignments()->get_assignment($targetuserid);
 
         if ($submitted <= 0) {

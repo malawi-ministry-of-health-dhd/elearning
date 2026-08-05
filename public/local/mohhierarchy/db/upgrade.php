@@ -67,5 +67,15 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026080500, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026080501) {
+        // Searchable assignment placement changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026080501, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026080502) {
+        // Blank required placement on core user creation changes validation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026080502, 'local', 'mohhierarchy');
+    }
+
     return true;
 }

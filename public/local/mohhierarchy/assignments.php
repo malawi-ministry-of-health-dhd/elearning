@@ -66,37 +66,43 @@ if ($targetuserid > 0) {
     $target->userid = (int) $target->id;
     $current = $assignments->get_assignment_with_names($targetuserid);
     $facilityoptions = [];
+    $zoneoptions = [];
+    $districtoptions = [];
+    $facilitypaths = [];
     foreach ($permissions->get_assignable_facilities((int) $USER->id) as $facility) {
-        $facilityoptions[(int) $facility->facilityid] = get_string(
-            'hierarchypath',
-            'local_mohhierarchy',
-            (object) [
-                'zone' => $facility->zonename,
-                'district' => $facility->districtname,
-                'facility' => $facility->facilityname,
-            ],
-        );
+        $facilityid = (int) $facility->facilityid;
+        $districtid = (int) $facility->districtid;
+        $zoneid = (int) $facility->zoneid;
+        $facilityoptions[$facilityid] = format_string($facility->facilityname);
+        $districtoptions[$districtid] = format_string($facility->districtname);
+        $zoneoptions[$zoneid] = format_string($facility->zonename);
+        $facilitypaths[$facilityid] = ['zoneid' => $zoneid, 'districtid' => $districtid];
     }
 
     // Keep an inactive current placement visible for context. It is not available when moving
     // somebody else, and the service repeats that rule when the form is saved.
     if ($current !== null && !isset($facilityoptions[(int) $current->facilityid])) {
-        $facilityoptions[(int) $current->facilityid] = get_string(
-            'hierarchypathinactive',
+        $facilityid = (int) $current->facilityid;
+        $districtid = (int) $current->districtid;
+        $zoneid = (int) $current->zoneid;
+        $facilityoptions[$facilityid] = get_string(
+            'facilityinactivecurrent',
             'local_mohhierarchy',
-            (object) [
-                'zone' => $current->zonename,
-                'district' => $current->districtname,
-                'facility' => $current->facilityname,
-            ],
+            format_string($current->facilityname),
         );
+        $districtoptions[$districtid] = format_string($current->districtname);
+        $zoneoptions[$zoneid] = format_string($current->zonename);
+        $facilitypaths[$facilityid] = ['zoneid' => $zoneid, 'districtid' => $districtid];
     }
 
     $formurl = new moodle_url($pageurl, ['userid' => $targetuserid, 'search' => $search]);
     $form = new assign_form($formurl, [
         'target' => $target,
         'targetname' => fullname($target) . ' (' . s($target->username) . ')',
+        'zones' => $zoneoptions,
+        'districts' => $districtoptions,
         'facilities' => $facilityoptions,
+        'facilitypaths' => $facilitypaths,
         'scopes' => $permissions->grantable_scopes((int) $USER->id),
         'permissions' => $permissions,
         'currentfacilityid' => $current === null ? 0 : (int) $current->facilityid,
@@ -105,6 +111,8 @@ if ($targetuserid > 0) {
     if ($current !== null) {
         $form->set_data([
             'userid' => $targetuserid,
+            'zoneid' => (int) $current->zoneid,
+            'districtid' => (int) $current->districtid,
             'facilityid' => (int) $current->facilityid,
             'scopelevel' => $current->scopelevel,
             'search' => $search,

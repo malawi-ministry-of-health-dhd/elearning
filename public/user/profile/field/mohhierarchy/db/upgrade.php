@@ -54,5 +54,15 @@ function xmldb_profilefield_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026080500, 'profilefield', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026080501) {
+        // Searchable assignment placement changes presentation only; no values need migration.
+        upgrade_plugin_savepoint(true, 2026080501, 'profilefield', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026080502) {
+        // Blank required placement on core user creation changes validation only; no values need migration.
+        upgrade_plugin_savepoint(true, 2026080502, 'profilefield', 'mohhierarchy');
+    }
+
     return true;
 }

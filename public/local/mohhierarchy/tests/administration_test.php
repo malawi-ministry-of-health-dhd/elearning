@@ -16,6 +16,7 @@
 
 namespace local_mohhierarchy;
 
+use local_mohhierarchy\form\assign_form;
 use local_mohhierarchy\local\assign_source;
 use local_mohhierarchy\local\config;
 use local_mohhierarchy\local\hierarchy\assignment_repository;
@@ -119,6 +120,46 @@ final class administration_test extends \advanced_testcase {
             $systemcontext,
             (int) $denied->id,
         ));
+    }
+
+    /**
+     * Assignment editing uses ordered hierarchy selectors and a searchable Facility control.
+     */
+    public function test_assignment_form_uses_searchable_facility_and_derived_parents(): void {
+        global $CFG, $PAGE;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        require_once($CFG->libdir . '/formslib.php');
+        $PAGE->set_context(\context_system::instance());
+        $url = new \moodle_url('/local/mohhierarchy/assignments.php', ['userid' => 123]);
+        $PAGE->set_url($url);
+
+        $target = (object) ['userid' => 123];
+        $form = new assign_form($url, [
+            'target' => $target,
+            'targetname' => 'Assignment target',
+            'zones' => [10 => 'Zone A'],
+            'districts' => [20 => 'District A'],
+            'facilities' => [30 => 'Facility A'],
+            'facilitypaths' => [30 => ['zoneid' => 10, 'districtid' => 20]],
+            'scopes' => scope_level::cases(),
+            'permissions' => new permission_service(),
+            'currentfacilityid' => 30,
+            'search' => '',
+        ]);
+        $html = $form->render();
+
+        $zoneposition = strpos($html, 'name="zoneid"');
+        $districtposition = strpos($html, 'name="districtid"');
+        $facilityposition = strpos($html, 'name="facilityid"');
+        $this->assertNotFalse($zoneposition);
+        $this->assertNotFalse($districtposition);
+        $this->assertNotFalse($facilityposition);
+        $this->assertLessThan($districtposition, $zoneposition);
+        $this->assertLessThan($facilityposition, $districtposition);
+        $this->assertStringContainsString('data-fieldtype="autocomplete"', $html);
+        $this->assertStringContainsString('Facility A', $html);
     }
 
     /**

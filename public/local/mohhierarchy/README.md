@@ -178,10 +178,11 @@ Site administrators may continue using Moodle's unmodified advanced form:
 
 The profile plugin adds Zone, District and Facility selectors alongside all existing custom profile
 fields. They retain that hierarchy order, while Facility is a searchable autocomplete control that
-displays only the facility name. Choosing it directly also populates its District and Zone from the
-local hierarchy. The controls have a stable responsive width, and the server independently derives
-and validates the facility ancestry on every submission. Trusted roles with `moodle/user:create`
-can also use this page after separate review.
+displays only the facility name. A new user's hierarchy starts blank. Choosing a Facility populates
+its District and Zone from the local hierarchy, and the account cannot be saved until a permitted
+Facility has been selected. The controls have a stable responsive width, and the server
+independently derives and validates the facility ancestry on every submission. Trusted roles with
+`moodle/user:create` can also use this page after separate review.
 
 Strict delegated managers use:
 
@@ -191,9 +192,11 @@ This page requires `local/mohhierarchy:createuser`, uses the same searchable Fac
 restricts facilities to the creator's active scope, uses Moodle's user API, and gives every new
 user scope `none`.
 
-Assignments are administered separately at `/local/mohhierarchy/assignments.php`. Consistency is
-reported at `/local/mohhierarchy/repair.php`; dry-run is available and facility conflicts are never
-automatically moved.
+Assignments are administered separately at `/local/mohhierarchy/assignments.php`. Its Facility
+control is searchable and selecting a Facility automatically populates Zone and District. The
+canonical assignment still stores and validates Facility, deriving both ancestors on the server.
+Consistency is reported at `/local/mohhierarchy/repair.php`; dry-run is available and facility
+conflicts are never automatically moved.
 
 CSV upload, web services, authentication synchronisation and bespoke provisioning are separate
 security pathways and must be reviewed independently.

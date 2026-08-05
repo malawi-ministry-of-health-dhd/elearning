@@ -251,6 +251,10 @@ final class field_test extends \advanced_testcase {
             'mohhierarchy-selector',
             (string) $mform->getElement('profile_field_mohfacility')->getAttribute('class'),
         );
+        $this->assertNull(
+            $mform->getElement('profile_field_mohfacility')->getSelected(),
+            'A new user form must not preselect the first facility',
+        );
 
         $html = $form->render();
         $facilityposition = strpos($html, 'name="profile_field_mohfacility"');
@@ -316,6 +320,10 @@ final class field_test extends \advanced_testcase {
         $this->assertTrue($mform->elementExists('profile_field_mohfacility_zone'));
         $this->assertTrue($mform->elementExists('profile_field_mohfacility_district'));
         $this->assertTrue($mform->elementExists('profile_field_mohfacility'));
+        $this->assertNull(
+            $mform->getElement('profile_field_mohfacility')->getSelected(),
+            'The core advanced add-user form must start with a blank hierarchy',
+        );
     }
 
     /**
@@ -398,6 +406,23 @@ final class field_test extends \advanced_testcase {
 
         $errors = $field->edit_validate_field((object) ['profile_field_mohfacility' => '']);
         $this->assertArrayHasKey('profile_field_mohfacility', $errors);
+
+        $errors = $field->edit_validate_field((object) []);
+        $this->assertArrayHasKey(
+            'profile_field_mohfacility',
+            $errors,
+            'Omitting the input entirely must not bypass hierarchy placement',
+        );
+
+        $errors = profile_validation((object) [
+            'id' => -1,
+            'profile_field_mohfacility' => '',
+        ], []);
+        $this->assertArrayHasKey(
+            'profile_field_mohfacility',
+            $errors,
+            'Moodle core profile validation must prevent the advanced add-user form from saving',
+        );
 
         $errors = $field->edit_validate_field((object) ['profile_field_mohfacility' => $this->id('a1a')]);
         $this->assertSame([], $errors);
