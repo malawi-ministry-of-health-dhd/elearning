@@ -195,8 +195,10 @@ user scope `none`.
 Assignments are administered separately at `/local/mohhierarchy/assignments.php`. Its Facility
 control is searchable and selecting a Facility automatically populates Zone and District. The
 canonical assignment still stores and validates Facility, deriving both ancestors on the server.
-Consistency is reported at `/local/mohhierarchy/repair.php`; dry-run is available and facility
-conflicts are never automatically moved.
+The specialist consistency report remains available directly at
+`/local/mohhierarchy/repair.php`; it is intentionally omitted from the main Site administration
+menu to keep routine hierarchy administration focused. Dry-run is available and facility conflicts
+are never automatically moved.
 
 CSV upload, web services, authentication synchronisation and bespoke provisioning are separate
 security pathways and must be reviewed independently.

@@ -127,9 +127,3 @@ $ADMIN->add('localplugins', new admin_externalpage(
     new moodle_url('/local/mohhierarchy/assignments.php'),
     permission_service::CAP_MANAGE_ASSIGNMENTS,
 ));
-$ADMIN->add('localplugins', new admin_externalpage(
-    'local_mohhierarchy_repair',
-    new lang_string('consistencyrepair', 'local_mohhierarchy'),
-    new moodle_url('/local/mohhierarchy/repair.php'),
-    permission_service::CAP_REPAIR_CONSISTENCY,
-));

@@ -191,6 +191,17 @@ final class administration_test extends \advanced_testcase {
     }
 
     /**
+     * The specialist repair report is not exposed in the main Site administration menu.
+     */
+    public function test_consistency_repair_is_hidden_from_admin_navigation(): void {
+        global $CFG;
+
+        $settingssource = file_get_contents($CFG->dirroot . '/local/mohhierarchy/settings.php');
+        $this->assertStringNotContainsString('local_mohhierarchy_repair', $settingssource);
+        $this->assertStringNotContainsString('/local/mohhierarchy/repair.php', $settingssource);
+    }
+
+    /**
      * Hierarchy administration searches are restricted in SQL to the actor's delegated scope.
      */
     public function test_hierarchy_search_is_scope_filtered(): void {
