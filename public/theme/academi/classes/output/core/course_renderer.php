@@ -597,13 +597,6 @@ class course_renderer extends \core_course_renderer {
         $meta = html_writer::tag('span', $courselabel, ['class' => 'meta-courses']);
         $meta .= html_writer::tag('span', $card['duration'], ['class' => 'meta-duration']);
         $meta .= html_writer::tag('span', $card['level'], ['class' => 'meta-level']);
-        $meta .= html_writer::tag('span',
-            html_writer::tag('span', 'KM') .
-            html_writer::tag('span', 'TZ') .
-            html_writer::tag('span', 'RN') .
-            html_writer::tag('span', '+5'),
-            ['class' => 'meta-audience']
-        );
         return $meta;
     }
 
@@ -1002,14 +995,6 @@ class course_renderer extends \core_course_renderer {
         $meta .= html_writer::tag('span', $coursecount . ' courses', ['class' => 'meta-courses']);
         $meta .= html_writer::tag('span', 'Self-paced', ['class' => 'meta-duration']);
         $meta .= html_writer::tag('span', 'All levels', ['class' => 'meta-level']);
-        $meta .= html_writer::tag('span',
-            html_writer::tag('span', 'KM') .
-            html_writer::tag('span', 'AC') .
-            html_writer::tag('span', 'TZ') .
-            html_writer::tag('span', 'RN') .
-            html_writer::tag('span', '+5'),
-            ['class' => 'meta-audience']
-        );
         if ($instructorcount > 0) {
             $meta .= html_writer::tag('span', $instructorcount . ' instructors',
                 ['class' => 'meta-instructors']);
@@ -1287,12 +1272,6 @@ class course_renderer extends \core_course_renderer {
         $meta .= html_writer::tag('span', $lessonlabel, ['class' => 'meta-lessons']);
         $meta .= html_writer::tag('span', 'Self-paced', ['class' => 'meta-duration']);
         $meta .= html_writer::tag('span', 'All levels', ['class' => 'meta-level']);
-        $meta .= html_writer::tag('span',
-            html_writer::tag('span', 'KM') .
-            html_writer::tag('span', 'AC') .
-            html_writer::tag('span', 'TZ'),
-            ['class' => 'meta-audience']
-        );
         $meta .= html_writer::end_tag('div');
         $body .= $meta;
 
