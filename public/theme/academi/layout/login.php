@@ -25,11 +25,15 @@
 defined('MOODLE_INTERNAL') || die();
 
 $bodyattributes = $OUTPUT->body_attributes();
-require_once(dirname(__FILE__) .'/includes/layoutdata.php');
-
-$templatecontext += [
+$templatecontext = [
     'sitename' => format_string($SITE->shortname, true, ['context' => context_course::instance(SITEID), "escape" => false]),
     'output' => $OUTPUT,
     'bodyattributes' => $bodyattributes,
+    'coatofarmsurl' => $OUTPUT->image_url('cpd/coat-of-arms', 'theme')->out(false),
+    'homeurl' => (new moodle_url('/'))->out(false),
+    'courseurl' => (new moodle_url('/course/index.php'))->out(false),
+    'reportsurl' => (new moodle_url('/local/edwiserreports/index.php'))->out(false),
+    'loginurl' => (new moodle_url('/login/index.php'))->out(false),
+    'currentyear' => date('Y'),
 ];
 echo $OUTPUT->render_from_template('theme_academi/login', $templatecontext);

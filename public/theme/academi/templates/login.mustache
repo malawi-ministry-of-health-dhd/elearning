@@ -33,24 +33,56 @@
 
 <body {{{ bodyattributes }}}>
     {{> core/local/toast/wrapper}}
-    <div id="page-wrapper">
+    <div id="page-wrapper" class="cpd-login-page">
         {{{ output.standard_top_of_body_html }}}
-        {{> theme_academi/header }}
-        <div id="page" class="container-fluid mt-0">
-            <div id="page-content" class="row">
-                <div id="region-main-box" class="col-12">
-                    <section id="region-main" class="col-12 h-100" aria-label="{{#str}}content{{/str}}">
-                    <div class="login-wrapper">
-                        <div class="login-container">
-                        {{{ output.main_content }}}
-                        </div>
-                    </div>
-                    </section>
-                </div>
+
+        <div class="cpd-info-bar">
+            <div class="cpd-info-contacts">
+                <span><i class="fa fa-phone" aria-hidden="true"></i>Call us : +265 1 789 534 / 1 789 536</span>
+                <a href="mailto:infor@health.gov.mw"><i class="fa fa-envelope-o" aria-hidden="true"></i>infor@health.gov.mw</a>
             </div>
+            <a class="cpd-info-login" href="{{loginurl}}"><i class="fa fa-sign-in" aria-hidden="true"></i>{{#str}}login{{/str}}</a>
         </div>
+
+        <header class="cpd-site-header">
+            <a class="cpd-site-brand" href="{{homeurl}}">
+                <img src="{{coatofarmsurl}}" alt="Malawi coat of arms">
+                <span>
+                    <strong>Continuous Professional Development</strong>
+                    <small>Ministry of Health · Malawi</small>
+                </span>
+            </a>
+            <nav class="cpd-site-nav" aria-label="{{#str}}sitemenubar, admin{{/str}}">
+                <a class="active" href="{{homeurl}}">Home</a>
+                <a href="{{courseurl}}">Courses <i class="fa fa-angle-down" aria-hidden="true"></i></a>
+                <a href="{{reportsurl}}">Reports &amp; Analytics</a>
+            </nav>
+        </header>
+
+        <main class="cpd-login-main">
+            <div class="cpd-login-card">
+                <section class="cpd-brand-panel" aria-labelledby="cpd-brand-heading">
+                    <div>
+                        <img class="cpd-brand-emblem" src="{{coatofarmsurl}}" alt="">
+                        <h1 id="cpd-brand-heading" class="cpd-brand-title">Continuous Professional Development Platform</h1>
+                        <p class="cpd-brand-copy">Accredited training and learning for Malawi's health workforce — courses, certificates, and reporting in one place.</p>
+                    </div>
+                    <div class="cpd-benefits">
+                        <div><i class="fa fa-book" aria-hidden="true"></i><span>Self-paced accredited courses</span></div>
+                        <div><i class="fa fa-certificate" aria-hidden="true"></i><span>CPD certificates on completion</span></div>
+                        <div><i class="fa fa-line-chart" aria-hidden="true"></i><span>Track your learning progress</span></div>
+                    </div>
+                </section>
+                <section id="region-main" class="cpd-form-panel" aria-label="{{#str}}content{{/str}}">
+                    {{{ output.main_content }}}
+                </section>
+            </div>
+        </main>
+
+        <footer class="cpd-login-footer">
+            © {{currentyear}} Ministry of Health, Malawi · Continuous Professional Development Platform
+        </footer>
     </div>
-    {{> theme_academi/footer }}
 {{#js}}
 M.util.js_pending('theme_boost/loader');
 require(['theme_boost/loader'], function() {

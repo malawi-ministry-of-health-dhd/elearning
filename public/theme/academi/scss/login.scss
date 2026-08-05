@@ -1,32 +1,663 @@
-/* Login */
-#page-login-index #header button.btn {
-    display: none;
-}
-.path-login {
-    #page-wrapper {
-        height: auto;
-        margin-bottom: 0;
-    }
-    #page {
-        background-image: url($loginbg);
-        background-size: cover;
-        background-position: top;
-        background-repeat: no-repeat;
-    }
-}
-.login-wrapper {
-    padding: 50px 0;
-    .login-form .login-form-submit .btn {
-        height: auto;
-    }
-}
-.login-container .login-identityproviders .login-identityprovider-btn {
-    border-color: $color_gallery_approx;
-    margin-top: 10px;
+/* CPD login */
+$cpd-navy: #1d4687;
+$cpd-navy-dark: #173972;
+$cpd-ink: #0f172a;
+$cpd-slate: #334155;
+$cpd-muted: #64748b;
+$cpd-border: #e2e8f0;
+$cpd-canvas: #f4f7fb;
+$cpd-gold: #b9a76c;
+
+body.path-login {
+    background: $cpd-canvas;
+    color: $cpd-slate;
+    padding-top: 0;
 }
 
-@media (max-width: 575px) {
-    #page-login-index .card {
-        margin-top: 50px;
+.path-login {
+    #page-wrapper.cpd-login-page {
+        min-height: 100vh;
+        height: auto;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        background: $cpd-canvas;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+        &::after {
+            display: none;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    }
+
+    .cpd-info-bar {
+        min-height: 56px;
+        padding: 0 40px;
+        display: flex;
+        flex: 0 0 56px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        color: $white;
+        background: $cpd-navy;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .cpd-info-contacts {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+
+        span,
+        a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: $white;
+        }
+
+        .fa {
+            opacity: .85;
+        }
+    }
+
+    .cpd-info-login {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: $white;
+        font-weight: 600;
+
+        &:hover,
+        &:focus {
+            color: $white;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+    }
+
+    .cpd-site-header {
+        min-height: 84px;
+        padding: 0 40px;
+        display: flex;
+        flex: 0 0 84px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+        background: $white;
+        border-bottom: 1px solid $cpd-border;
+    }
+
+    .cpd-site-brand {
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        color: $cpd-ink;
+
+        img {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+            flex: 0 0 52px;
+        }
+
+        span {
+            min-width: 0;
+            line-height: 1.1;
+        }
+
+        strong,
+        small {
+            display: block;
+        }
+
+        strong {
+            color: $cpd-ink;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        small {
+            margin-top: 5px;
+            color: $cpd-muted;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: .02em;
+        }
+
+        &:hover strong,
+        &:focus strong {
+            color: $cpd-navy;
+        }
+    }
+
+    .cpd-site-nav {
+        display: flex;
+        align-items: center;
+        gap: 36px;
+        font-size: 15px;
+        font-weight: 500;
+
+        a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: $cpd-slate;
+            transition: color .2s ease;
+
+            &.active {
+                color: $cpd-navy;
+                font-weight: 600;
+            }
+
+            &:hover,
+            &:focus {
+                color: $cpd-navy;
+            }
+        }
+    }
+
+    .cpd-login-main {
+        min-width: 0;
+        padding: 56px 40px;
+        display: flex;
+        flex: 1 0 auto;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cpd-login-card {
+        width: 100%;
+        max-width: 920px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: hidden;
+        background: $white;
+        border-radius: 16px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, .10), 0 4px 8px rgba(15, 23, 42, .06);
+    }
+
+    .cpd-brand-panel {
+        min-height: 520px;
+        padding: 56px 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: $white;
+        background: $cpd-navy;
+    }
+
+    .cpd-brand-emblem {
+        width: 80px;
+        height: 80px;
+        padding: 8px;
+        display: block;
+        object-fit: contain;
+        margin: 0 0 32px;
+        background: $white;
+        border-radius: 10px;
+    }
+
+    .cpd-brand-title {
+        margin: 0 0 18px;
+        color: $white;
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -.01em;
+    }
+
+    .cpd-brand-copy {
+        max-width: 340px;
+        margin: 0;
+        color: #a8bbdb;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    .cpd-benefits {
+        margin-top: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+
+        > div {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: #d6dfef;
+            font-size: 14px;
+        }
+
+        .fa {
+            width: 16px;
+            color: $cpd-gold;
+            font-size: 16px;
+            text-align: center;
+        }
+    }
+
+    .cpd-form-panel {
+        min-width: 0;
+        padding: 56px 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: $white;
+    }
+
+    .cpd-loginform {
+        width: 100%;
+    }
+
+    .cpd-form-title {
+        margin: 0 0 6px;
+        color: $cpd-ink;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: -.01em;
+    }
+
+    .cpd-form-intro {
+        margin: 0 0 32px;
+        color: $cpd-muted;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .cpd-form-group {
+        margin-bottom: 20px;
+
+        label {
+            display: block;
+            margin: 0 0 8px;
+            color: $cpd-slate;
+            font-size: 13px;
+            font-weight: 600;
+        }
+    }
+
+    .cpd-control-wrap {
+        position: relative;
+    }
+
+    .cpd-control-icon {
+        position: absolute;
+        top: 50%;
+        left: 16px;
+        z-index: 2;
+        color: #94a3b8;
+        font-size: 14px;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .cpd-input.form-control {
+        width: 100%;
+        height: 48px;
+        padding: 0 44px;
+        color: $cpd-slate;
+        background: $white;
+        border: 1px solid $cpd-border;
+        border-radius: 8px;
+        box-shadow: none;
+        font-family: inherit;
+        font-size: 14px;
+        transition: border-color .2s ease, box-shadow .2s ease;
+
+        &::placeholder {
+            color: #94a3b8;
+        }
+
+        &:focus {
+            border-color: $cpd-navy;
+            box-shadow: 0 0 0 3px rgba(29, 70, 135, .18);
+        }
+    }
+
+    .cpd-form-options {
+        margin: -6px 0 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        color: $cpd-muted;
+        font-size: 13px;
+
+        a {
+            color: $cpd-muted;
+            font-weight: 500;
+
+            &:hover,
+            &:focus {
+                color: $cpd-navy;
+                text-decoration: underline;
+                text-underline-offset: 2px;
+            }
+        }
+    }
+
+    .cpd-remember {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+
+        input {
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            accent-color: $cpd-navy;
+        }
+    }
+
+    .login-form-recaptcha {
+        margin-bottom: 20px;
+    }
+
+    .cpd-login-button.btn {
+        width: 100%;
+        height: 48px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: $white;
+        background: $cpd-navy;
+        border: 0;
+        border-radius: 8px;
+        box-shadow: none;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        transition: background .2s ease;
+
+        &:hover,
+        &:focus {
+            color: $white;
+            background: $cpd-navy-dark;
+        }
+
+        &:active {
+            background: #112b58;
+        }
+    }
+
+    .cpd-login-extra {
+        margin-top: 20px;
+        color: $cpd-muted;
+        font-size: 13px;
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        a {
+            color: $cpd-navy;
+            font-weight: 600;
+        }
+    }
+
+    .cpd-login-separator {
+        margin: 24px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: $cpd-muted;
+        font-size: 12px;
+        text-transform: uppercase;
+
+        &::before,
+        &::after {
+            height: 1px;
+            content: "";
+            flex: 1;
+            background: $cpd-border;
+        }
+    }
+
+    .login-identityproviders {
+        display: grid;
+        gap: 10px;
+    }
+
+    .login-identityprovider-btn.btn {
+        width: 100%;
+        min-height: 44px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: $cpd-slate;
+        background: $white;
+        border: 1px solid $cpd-border;
+        border-radius: 8px;
+
+        &:hover,
+        &:focus {
+            color: $cpd-navy;
+            border-color: $cpd-navy;
+        }
+    }
+
+    .cpd-login-utility {
+        margin-top: 28px;
+        padding-top: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        border-top: 1px solid $cpd-border;
+    }
+
+    .login-languagemenu {
+        .dropdown-toggle {
+            color: $cpd-muted;
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            font-size: 13px;
+        }
+    }
+
+    .cpd-cookies-button.btn {
+        padding: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: $cpd-muted;
+        border: 0;
+        box-shadow: none;
+        font-size: 13px;
+        font-weight: 500;
+
+        &:hover,
+        &:focus {
+            color: $cpd-navy;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+    }
+
+    .alert {
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    .cpd-login-footer {
+        min-height: 48px;
+        padding: 0 24px;
+        display: flex;
+        flex: 0 0 48px;
+        align-items: center;
+        justify-content: center;
+        color: #7997c8;
+        background: #06122a;
+        font-size: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .path-login {
+        .cpd-site-header {
+            padding-right: 28px;
+            padding-left: 28px;
+        }
+
+        .cpd-site-nav {
+            gap: 20px;
+        }
+
+        .cpd-login-main {
+            padding-right: 28px;
+            padding-left: 28px;
+        }
+
+        .cpd-brand-panel,
+        .cpd-form-panel {
+            padding-right: 36px;
+            padding-left: 36px;
+        }
+
+        .cpd-brand-title {
+            font-size: 30px;
+        }
+    }
+}
+
+@media (max-width: 767.98px) {
+    .path-login {
+        .cpd-info-bar {
+            min-height: 56px;
+            height: auto;
+            padding: 12px 20px;
+            flex: 0 0 auto;
+        }
+
+        .cpd-info-contacts {
+            gap: 12px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .cpd-site-header {
+            min-height: 84px;
+            height: auto;
+            padding: 16px 20px;
+            flex: 0 0 auto;
+        }
+
+        .cpd-site-nav {
+            display: none;
+        }
+
+        .cpd-login-main {
+            padding: 36px 20px;
+            align-items: flex-start;
+        }
+
+        .cpd-login-card {
+            max-width: 560px;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .cpd-brand-panel {
+            min-height: 0;
+            padding: 36px;
+        }
+
+        .cpd-brand-emblem {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 24px;
+        }
+
+        .cpd-brand-title {
+            max-width: 420px;
+            font-size: 28px;
+        }
+
+        .cpd-form-panel {
+            padding: 40px 36px;
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .path-login {
+        .cpd-info-bar {
+            padding: 12px 16px;
+            font-size: 12px;
+        }
+
+        .cpd-info-login {
+            align-self: flex-start;
+        }
+
+        .cpd-site-header {
+            padding: 14px 16px;
+        }
+
+        .cpd-site-brand img {
+            width: 46px;
+            height: 46px;
+            flex-basis: 46px;
+        }
+
+        .cpd-site-brand strong {
+            font-size: 13px;
+        }
+
+        .cpd-site-brand small {
+            font-size: 11px;
+        }
+
+        .cpd-login-main {
+            padding: 24px 16px;
+        }
+
+        .cpd-brand-panel {
+            padding: 30px 24px;
+        }
+
+        .cpd-brand-title {
+            font-size: 26px;
+        }
+
+        .cpd-benefits {
+            gap: 12px;
+        }
+
+        .cpd-form-panel {
+            padding: 36px 24px;
+        }
+
+        .cpd-form-options {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cpd-login-utility {
+            flex-wrap: wrap;
+        }
+
+        .cpd-login-footer {
+            min-height: 48px;
+            height: auto;
+            padding: 14px 20px;
+            flex: 0 0 auto;
+            line-height: 1.45;
+        }
     }
 }
