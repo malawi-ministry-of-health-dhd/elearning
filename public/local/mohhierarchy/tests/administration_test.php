@@ -297,6 +297,7 @@ final class administration_test extends \advanced_testcase {
         $this->assertNotNull($report->get_filter('user:hierarchydistrict'));
         $facilityfilter = $report->get_filter('user:hierarchyfacility');
         $this->assertNotNull($facilityfilter);
+        $this->assertNull($report->get_filter('user:hierarchyassignmentstatus'));
         $this->assertArrayHasKey((int) $zonea->id, $zonefilter->get_options());
         $this->assertArrayHasKey((int) $zoneb->id, $zonefilter->get_options());
         $this->assertArrayHasKey((int) $facilitya->id, $facilityfilter->get_options());
@@ -349,6 +350,63 @@ final class administration_test extends \advanced_testcase {
         $this->assertStringContainsString('mohscope.zoneid', $forgedbasesql);
 
         $this->assertTrue($forgedreport->set_filter_values([]));
+        \core_reportbuilder\manager::reset_caches();
+    }
+
+    /**
+     * Site administrators can filter the user report to accounts without an active assignment.
+     */
+    public function test_jurisdiction_report_filters_unassigned_users_for_site_administrator(): void {
+        global $PAGE;
+
+        $this->resetAfterTest();
+        $PAGE = new \moodle_page();
+        $generator = $this->generator();
+        $service = new assignment_service();
+
+        $zone = $generator->create_zone();
+        $district = $generator->create_district(['zoneid' => $zone->id]);
+        $facility = $generator->create_facility(['districtid' => $district->id]);
+        $assigned = $this->getDataGenerator()->create_user([
+            'firstname' => 'Assigned',
+            'lastname' => 'Hierarchy Account',
+        ]);
+        $unassigned = $this->getDataGenerator()->create_user([
+            'firstname' => 'Unassigned',
+            'lastname' => 'Hierarchy Account',
+        ]);
+        $service->assign_user((int) $assigned->id, (int) $facility->id, scope_level::NONE);
+        $this->setAdminUser();
+
+        $report = \core_reportbuilder\system_report_factory::create(
+            jurisdiction_users::class,
+            \context_system::instance(),
+            parameters: ['withcheckboxes' => false],
+        );
+        $statusfilter = $report->get_filter('user:hierarchyassignmentstatus');
+        $this->assertNotNull($statusfilter);
+        $this->assertSame([
+            1 => get_string('hierarchyassigned', 'local_mohhierarchy'),
+            0 => get_string('hierarchynotassigned', 'local_mohhierarchy'),
+        ], $statusfilter->get_options());
+
+        $this->assertTrue($report->set_filter_values([
+            'user:hierarchyassignmentstatus_operator' => \core_reportbuilder\local\filters\select::EQUAL_TO,
+            'user:hierarchyassignmentstatus_value' => 0,
+        ]));
+        \core_reportbuilder\manager::reset_caches();
+        $filteredreport = \core_reportbuilder\system_report_factory::create(
+            jurisdiction_users::class,
+            \context_system::instance(),
+            parameters: ['withcheckboxes' => false],
+        );
+        $PAGE->set_context(\context_system::instance());
+        $PAGE->set_url('/local/mohhierarchy/assignments.php');
+        $html = $filteredreport->output();
+        $this->assertStringContainsString(fullname($unassigned), $html);
+        $this->assertStringNotContainsString(fullname($assigned), $html);
+
+        $this->assertTrue($filteredreport->set_filter_values([]));
         \core_reportbuilder\manager::reset_caches();
     }
 

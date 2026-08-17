@@ -213,6 +213,23 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
         ))
             ->add_joins($this->hierarchy_joins())
             ->set_options($facilities));
+
+        // An unassigned account has no hierarchy jurisdiction. Only site administrators can
+        // discover and place these accounts, matching permission_service::can_manage_assignment().
+        if (is_siteadmin($USER)) {
+            $this->add_filter((new filter(
+                select::class,
+                'hierarchyassignmentstatus',
+                new \lang_string('hierarchyassignmentstatus', 'local_mohhierarchy'),
+                $entityname,
+                "CASE WHEN {$this->assignmentalias}.id IS NULL THEN 0 ELSE 1 END",
+            ))
+                ->add_joins($this->hierarchy_joins())
+                ->set_options([
+                    1 => get_string('hierarchyassigned', 'local_mohhierarchy'),
+                    0 => get_string('hierarchynotassigned', 'local_mohhierarchy'),
+                ]));
+        }
     }
 
     /**

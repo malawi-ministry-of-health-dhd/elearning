@@ -117,5 +117,10 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026081704, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026081705) {
+        // The unassigned-user report filter changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081705, 'local', 'mohhierarchy');
+    }
+
     return true;
 }

@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026081704;
+$plugin->version   = 2026081705;
 $plugin->requires  = 2026042000;
 $plugin->component = 'local_mohhierarchy';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.2.5';
+$plugin->release   = '1.2.6';
