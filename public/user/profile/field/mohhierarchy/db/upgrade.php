@@ -64,5 +64,13 @@ function xmldb_profilefield_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026080502, 'profilefield', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026081709) {
+        // Repair a missing hierarchy profile-field instance and add the existing-user assignment action.
+        require_once(__DIR__ . '/install.php');
+        xmldb_profilefield_mohhierarchy_install();
+
+        upgrade_plugin_savepoint(true, 2026081709, 'profilefield', 'mohhierarchy');
+    }
+
     return true;
 }

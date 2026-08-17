@@ -243,6 +243,48 @@ final class administration_test extends \advanced_testcase {
     }
 
     /**
+     * User navigation exposes the audited hierarchy assignment action only for manageable targets.
+     */
+    public function test_user_navigation_contains_hierarchy_assignment_action(): void {
+        global $CFG, $SITE;
+
+        $this->resetAfterTest();
+        require_once($CFG->dirroot . '/local/mohhierarchy/lib.php');
+        $this->setAdminUser();
+        $target = $this->getDataGenerator()->create_user();
+        $targetcontext = \context_user::instance((int) $target->id);
+        $navigation = \navigation_node::create('Target user');
+
+        local_mohhierarchy_extend_navigation_user(
+            $navigation,
+            $target,
+            $targetcontext,
+            $SITE,
+            \context_system::instance(),
+        );
+
+        $action = $navigation->find('local_mohhierarchy_transfer', \navigation_node::TYPE_SETTING);
+        $this->assertNotFalse($action);
+        $this->assertSame(
+            (new \moodle_url('/local/mohhierarchy/assignments.php', ['userid' => (int) $target->id]))->out(false),
+            $action->action->out(false),
+        );
+
+        $selfnavigation = \navigation_node::create('Current user');
+        $admin = get_admin();
+        local_mohhierarchy_extend_navigation_user(
+            $selfnavigation,
+            $admin,
+            \context_user::instance((int) $admin->id),
+            $SITE,
+            \context_system::instance(),
+        );
+        $this->assertFalse(
+            $selfnavigation->find('local_mohhierarchy_transfer', \navigation_node::TYPE_SETTING),
+        );
+    }
+
+    /**
      * The user report defaults to jurisdiction and searches all hierarchy when explicitly filtered.
      */
     public function test_jurisdiction_report_has_filters_actions_and_only_in_scope_rows(): void {

@@ -193,6 +193,11 @@ Facility has been selected. The controls have a stable responsive width, and the
 independently derives and validates the facility ancestry on every submission. Trusted roles with
 `moodle/user:create` can also use this page after separate review.
 
+When an authorised administrator edits an existing account, the same Organisation hierarchy
+section shows Zone, District and Facility and includes a **Transfer or assign hierarchy** link to
+the audited assignment workflow. The user navigation exposes the same action for manageable
+targets.
+
 Strict delegated managers use:
 
 `/local/mohhierarchy/createuser.php`

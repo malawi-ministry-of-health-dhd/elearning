@@ -120,6 +120,24 @@ class profile_field_mohhierarchy extends profile_field_base {
             'nofacilities',
             true,
         );
+        if ((int) $this->userid > 0 && $this->permissions()->can_manage_assignment(
+            $actorid,
+            (int) $this->userid,
+        )) {
+            $transferurl = new moodle_url('/local/mohhierarchy/assignments.php', [
+                'userid' => (int) $this->userid,
+            ]);
+            $mform->addElement(
+                'static',
+                $this->inputname . '_transfer',
+                get_string('assignmentaction', 'profilefield_mohhierarchy'),
+                html_writer::link(
+                    $transferurl,
+                    get_string('transferorassign', 'profilefield_mohhierarchy'),
+                    ['class' => 'btn btn-secondary'],
+                ),
+            );
+        }
         if ((int) $this->userid <= 0) {
             // Facility is the canonical placement value. Requiring it also guarantees that Zone
             // and District can be derived, while edit_validate_field() repeats the check on the

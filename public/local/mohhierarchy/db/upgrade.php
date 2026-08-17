@@ -137,5 +137,10 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026081708, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026081709) {
+        // The user-navigation assignment action adds a callback only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081709, 'local', 'mohhierarchy');
+    }
+
     return true;
 }

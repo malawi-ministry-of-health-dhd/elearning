@@ -24,6 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['assignmentaction'] = 'Hierarchy assignment';
 $string['categoryname'] = 'Organisation hierarchy';
 $string['definenote'] = 'This field stores the local facility ID from the MoH hierarchy plugin. Zone and district are derived from the facility, and the canonical assignment is kept in step automatically. The field is deliberately not available on the signup page.';
 $string['district'] = 'District';
@@ -51,4 +52,5 @@ $string['privacy:metadata:userid'] = 'The user who owns the profile-field value.
 $string['selectdistrict'] = 'Choose a district';
 $string['selectfacility'] = 'Choose a facility';
 $string['selectzone'] = 'Choose a zone';
+$string['transferorassign'] = 'Transfer or assign hierarchy';
 $string['zone'] = 'Zone';

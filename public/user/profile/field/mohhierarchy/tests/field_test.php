@@ -327,6 +327,65 @@ final class field_test extends \advanced_testcase {
     }
 
     /**
+     * Moodle's advanced existing-user form shows hierarchy controls and the audited assignment action.
+     */
+    public function test_core_advanced_existing_user_form_receives_profile_field_and_transfer_action(): void {
+        global $CFG, $PAGE;
+
+        require_once($CFG->dirroot . '/webservice/lib.php');
+        require_once($CFG->dirroot . '/user/editlib.php');
+        require_once($CFG->dirroot . '/user/editadvanced_form.php');
+        $this->setAdminUser();
+        $user = $this->getDataGenerator()->create_user();
+        $user->imagefile = 0;
+        $usercontext = \context_user::instance((int) $user->id);
+        $PAGE->set_context($usercontext);
+        $PAGE->set_url('/user/editadvanced.php', ['id' => (int) $user->id, 'course' => SITEID]);
+        $editoroptions = [
+            'maxfiles' => EDITOR_UNLIMITED_FILES,
+            'maxbytes' => 0,
+            'trusttext' => false,
+            'forcehttps' => false,
+            'context' => $usercontext,
+        ];
+        $filemanageroptions = [
+            'maxbytes' => 0,
+            'subdirs' => 0,
+            'maxfiles' => 1,
+            'accepted_types' => 'optimised_image',
+        ];
+        $form = new class (new \moodle_url('/user/editadvanced.php', [
+            'id' => (int) $user->id,
+            'course' => SITEID,
+        ]), [
+            'editoroptions' => $editoroptions,
+            'filemanageroptions' => $filemanageroptions,
+            'user' => $user,
+        ]) extends \user_editadvanced_form {
+            /**
+             * Exposes the form definition for integration assertions.
+             *
+             * @return \MoodleQuickForm
+             */
+            public function get_mform_for_test(): \MoodleQuickForm {
+                return $this->_form;
+            }
+        };
+        $mform = $form->get_mform_for_test();
+
+        $this->assertTrue($mform->elementExists('profile_field_mohfacility_zone'));
+        $this->assertTrue($mform->elementExists('profile_field_mohfacility_district'));
+        $this->assertTrue($mform->elementExists('profile_field_mohfacility'));
+        $this->assertTrue($mform->elementExists('profile_field_mohfacility_transfer'));
+        $this->assertStringContainsString(
+            (new \moodle_url('/local/mohhierarchy/assignments.php', [
+                'userid' => (int) $user->id,
+            ]))->out(false),
+            $form->render(),
+        );
+    }
+
+    /**
      * A facility manager's fixed facility element is frozen but still carries its value.
      */
     public function test_fixed_facility_is_frozen_but_submits(): void {
