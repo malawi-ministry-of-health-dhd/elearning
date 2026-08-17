@@ -122,5 +122,20 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026081705, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026081706) {
+        // Assignment-status filter visibility changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081706, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081707) {
+        // The persistent assignment-status selector changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081707, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081708) {
+        // Site-administrator Browse users navigation changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081708, 'local', 'mohhierarchy');
+    }
+
     return true;
 }

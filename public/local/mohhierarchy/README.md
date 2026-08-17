@@ -175,8 +175,9 @@ exposes Moodle's broader core account-creation routes.
 Delegated hierarchy managers should also normally not receive `moodle/user:update` or
 `moodle/user:delete`; those capabilities expose Moodle's unrestricted core user report and account
 actions. With `local/mohhierarchy:manageassignments`, the standard **Browse list of users**
-navigation entry instead opens the plugin's jurisdiction-filtered user list. Site administrators
-continue to use `/admin/user.php`.
+navigation entry opens the plugin's hierarchy-aware user list for delegated managers and site
+administrators. Moodle's complete core report remains available by opening `/admin/user.php`
+directly.
 
 ## User creation and assignment
 

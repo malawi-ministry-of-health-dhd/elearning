@@ -39,6 +39,10 @@ $systemcontext = context_system::instance();
 require_capability(permission_service::CAP_MANAGE_ASSIGNMENTS, $systemcontext);
 
 $search = optional_param('search', '', PARAM_TEXT);
+$assignmentstatus = optional_param('assignmentstatus', '', PARAM_ALPHA);
+if (!in_array($assignmentstatus, ['assigned', 'unassigned'], true)) {
+    $assignmentstatus = '';
+}
 $targetuserid = optional_param('userid', 0, PARAM_INT);
 $permissions = new permission_service();
 $assignments = new assignment_service();
@@ -175,7 +179,10 @@ if ($targetuserid > 0) {
 $report = \core_reportbuilder\system_report_factory::create(
     jurisdiction_users::class,
     $systemcontext,
-    parameters: ['withcheckboxes' => false],
+    parameters: [
+        'withcheckboxes' => false,
+        'assignmentstatus' => $assignmentstatus,
+    ],
 );
 if (is_siteadmin($USER) || has_capability(permission_service::CAP_CREATE_USER, $systemcontext)) {
     $createurl = is_siteadmin($USER)
@@ -198,5 +205,20 @@ if (!is_siteadmin($USER)) {
         \core\output\notification::NOTIFY_INFO,
     );
 }
+$statusfilter = new \core\output\single_select(
+    $pageurl,
+    'assignmentstatus',
+    [
+        '' => get_string('hierarchyassignmentall', 'local_mohhierarchy'),
+        'assigned' => get_string('hierarchyassigned', 'local_mohhierarchy'),
+        'unassigned' => get_string('hierarchynotassigned', 'local_mohhierarchy'),
+    ],
+    $assignmentstatus,
+    null,
+    'mohhierarchy-assignment-status-filter',
+);
+$statusfilter->set_label(get_string('hierarchyassignmentstatus', 'local_mohhierarchy'));
+$statusfilter->class .= ' mb-3';
+echo $OUTPUT->render($statusfilter);
 echo $report->output();
 echo $OUTPUT->footer();

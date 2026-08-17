@@ -55,6 +55,23 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
 
         parent::initialise();
 
+        $assignmentstatus = $this->get_parameter('assignmentstatus', '', PARAM_ALPHA);
+        if (!in_array($assignmentstatus, ['assigned', 'unassigned'], true)) {
+            $assignmentstatus = '';
+        }
+        if ($assignmentstatus !== '') {
+            $useralias = $this->get_entity('user')->get_table_alias('user');
+            $existsclause = "EXISTS (
+                SELECT 1
+                  FROM {local_mohh_assign} mohstatus
+                 WHERE mohstatus.userid = {$useralias}.id
+                   AND mohstatus.active = 1
+            )";
+            $this->add_base_condition_sql(
+                $assignmentstatus === 'assigned' ? $existsclause : "NOT {$existsclause}",
+            );
+        }
+
         if (is_siteadmin($USER)) {
             return;
         }
@@ -65,10 +82,10 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
             return;
         }
 
-        // Applying a valid Zone, District or Facility filter is the explicit request to search
-        // outside the default jurisdiction. Other core filters (for example name or email) never
-        // widen the report by themselves.
-        if ($this->hierarchy_filter_applied()) {
+        // Applying a valid hierarchy filter is the explicit request to search outside the default
+        // jurisdiction. Other core filters (for example name or email) never widen the report by
+        // themselves. Transfer actions remain independently permission checked for every row.
+        if ($assignmentstatus !== '' || $this->hierarchy_filter_applied()) {
             return;
         }
 
@@ -214,22 +231,6 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
             ->add_joins($this->hierarchy_joins())
             ->set_options($facilities));
 
-        // An unassigned account has no hierarchy jurisdiction. Only site administrators can
-        // discover and place these accounts, matching permission_service::can_manage_assignment().
-        if (is_siteadmin($USER)) {
-            $this->add_filter((new filter(
-                select::class,
-                'hierarchyassignmentstatus',
-                new \lang_string('hierarchyassignmentstatus', 'local_mohhierarchy'),
-                $entityname,
-                "CASE WHEN {$this->assignmentalias}.id IS NULL THEN 0 ELSE 1 END",
-            ))
-                ->add_joins($this->hierarchy_joins())
-                ->set_options([
-                    1 => get_string('hierarchyassigned', 'local_mohhierarchy'),
-                    0 => get_string('hierarchynotassigned', 'local_mohhierarchy'),
-                ]));
-        }
     }
 
     /**
@@ -243,7 +244,12 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
      */
     protected function hierarchy_filter_applied(): bool {
         $values = $this->get_filter_values();
-        foreach (['hierarchyzone', 'hierarchydistrict', 'hierarchyfacility'] as $name) {
+        $hierarchyfilters = [
+            'hierarchyzone',
+            'hierarchydistrict',
+            'hierarchyfacility',
+        ];
+        foreach ($hierarchyfilters as $name) {
             $filter = $this->get_filter('user:' . $name);
             if ($filter !== null && select::create($filter)->applies_to_values($values)) {
                 return true;

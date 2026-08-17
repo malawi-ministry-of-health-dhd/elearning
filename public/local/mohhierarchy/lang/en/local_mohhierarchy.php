@@ -30,6 +30,7 @@ $string['activefacilities'] = 'Active facilities';
 $string['activezones'] = 'Active zones';
 $string['assignmentadministration'] = 'User hierarchy assignments';
 $string['hierarchyassigned'] = 'Assigned to a hierarchy';
+$string['hierarchyassignmentall'] = 'All users';
 $string['hierarchyassignmentstatus'] = 'Hierarchy assignment';
 $string['hierarchynotassigned'] = 'Not assigned to any hierarchy';
 $string['assignmentsaved'] = 'The hierarchy assignment was saved.';
