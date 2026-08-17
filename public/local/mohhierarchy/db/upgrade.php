@@ -82,5 +82,20 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026080503, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026080600) {
+        // Jurisdiction-filtered user navigation and transfer restrictions require no data migration.
+        upgrade_plugin_savepoint(true, 2026080600, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081100) {
+        // The Report Builder jurisdiction user list adds classes only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081100, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081700) {
+        // Stricter delegated scope-grant checks require no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081700, 'local', 'mohhierarchy');
+    }
+
     return true;
 }

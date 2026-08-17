@@ -101,10 +101,9 @@ class permission_service {
     /**
      * Whether the actor may create or change this user's assignment.
      *
-     * A target with no assignment yet is in scope for anyone who may manage assignments: the
-     * facility they are being moved to is what gets scope checked, by
-     * can_assign_user_to_facility(). A target who already has an assignment must sit inside the
-     * actor's scope, so that a district manager cannot reach into another district.
+     * A delegated actor may transfer only a target with an active assignment inside the actor's
+     * current scope. Unassigned and withdrawn users are not part of a delegated jurisdiction.
+     * Site administrators may place an unassigned user, but still cannot edit themselves.
      *
      * @param int $actorid The acting user.
      * @param int $targetuserid The user whose assignment would change.
@@ -140,9 +139,18 @@ class permission_service {
             return false;
         }
 
-        $target = $this->assignments->get_for_user($targetuserid);
+        $target = $this->assignments->get_active_for_user($targetuserid);
         if ($target === null) {
-            return true;
+            return false;
+        }
+
+        // A delegated manager may manage peers and less-privileged users, but never somebody
+        // whose delegated authority is broader than their own. Location alone is insufficient:
+        // for example, a district manager must not transfer or demote a zone manager merely
+        // because that zone manager happens to be placed at a facility in the district.
+        $targetscope = scope_level::tryFrom((string) $target->scopelevel);
+        if ($targetscope === null || self::breadth($targetscope) > self::breadth($scope->level)) {
+            return false;
         }
 
         return $this->facility_in_scope($scope, (int) $target->facilityid, false);
@@ -325,6 +333,23 @@ class permission_service {
         }
 
         return self::breadth($scope) <= self::breadth($own->level);
+    }
+
+    /**
+     * Whether the actor may assign this scope to this particular user.
+     *
+     * Keeping the target and requested-scope checks together prevents controllers from checking
+     * only one half of the decision. Site administrators retain Moodle's explicit administrator
+     * override, except that nobody may edit their own hierarchy assignment.
+     *
+     * @param int $actorid The acting user.
+     * @param int $targetuserid The user whose scope would change.
+     * @param scope_level $scope The requested new scope.
+     * @return bool
+     */
+    public function can_grant_scope_to_user(int $actorid, int $targetuserid, scope_level $scope): bool {
+        return $this->can_manage_assignment($actorid, $targetuserid)
+            && $this->can_grant_scope($actorid, $scope);
     }
 
     /**

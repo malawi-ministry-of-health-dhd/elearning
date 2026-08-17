@@ -163,12 +163,20 @@ Scope definitions:
 - `district`: every active facility in the assigned district.
 - `zone`: every active district and facility in the assigned zone.
 
-A manager cannot grant a broader scope than their own, modify their own scope, manage a user outside
-their scope, or target a site administrator. Site administrators may manage the entire hierarchy.
+A manager cannot grant a broader scope than their own, modify their own scope, manage a user whose
+scope is broader than theirs, manage a user outside their geographic scope, or target a site
+administrator. Unassigned and withdrawn users are outside a delegated manager's jurisdiction. Site
+administrators may manage the entire hierarchy.
 
 Delegated managers should normally receive `local/mohhierarchy:createuser` and
 `local/mohhierarchy:viewhierarchy`, but not `moodle/user:create`. Granting `moodle/user:create`
 exposes Moodle's broader core account-creation routes.
+
+Delegated hierarchy managers should also normally not receive `moodle/user:update` or
+`moodle/user:delete`; those capabilities expose Moodle's unrestricted core user report and account
+actions. With `local/mohhierarchy:manageassignments`, the standard **Browse list of users**
+navigation entry instead opens the plugin's jurisdiction-filtered user list. Site administrators
+continue to use `/admin/user.php`.
 
 ## User creation and assignment
 
@@ -195,6 +203,10 @@ user scope `none`.
 Assignments are administered separately at `/local/mohhierarchy/assignments.php`. Its Facility
 control is searchable and selecting a Facility automatically populates Zone and District. The
 canonical assignment still stores and validates Facility, deriving both ancestors on the server.
+For delegated managers, the list and its search are always filtered to active assignments inside
+their own Zone, District or Facility. A transfer is allowed only when both the user's current
+assignment and the destination Facility are inside that jurisdiction, and the requested management
+scope is no broader than the acting manager's own scope.
 The specialist consistency report remains available directly at
 `/local/mohhierarchy/repair.php`; it is intentionally omitted from the main Site administration
 menu to keep routine hierarchy administration focused. Dry-run is available and facility conflicts

@@ -414,9 +414,65 @@ final class permission_service_test extends \advanced_testcase {
         $this->assertFalse($this->permissions->can_grant_scope($districtactor, scope_level::ZONE));
         $this->assertTrue($this->permissions->can_grant_scope($zoneactor, scope_level::ZONE));
 
+        $values = static fn(array $scopes): array => array_map(
+            static fn(scope_level $scope): string => $scope->value,
+            $scopes,
+        );
+        $this->assertSame(
+            ['none', 'facility'],
+            $values($this->permissions->grantable_scopes($facilityactor)),
+        );
+        $this->assertSame(
+            ['none', 'facility', 'district'],
+            $values($this->permissions->grantable_scopes($districtactor)),
+        );
+        $this->assertSame(
+            ['none', 'facility', 'district', 'zone'],
+            $values($this->permissions->grantable_scopes($zoneactor)),
+        );
+
         foreach (scope_level::cases() as $scope) {
             $this->assertTrue($this->permissions->can_grant_scope($admin, $scope));
         }
+    }
+
+    /**
+     * A delegated manager cannot edit a more privileged target or submit a broader new scope.
+     */
+    public function test_scope_change_combines_target_and_grant_limits(): void {
+        $districtactor = $this->actor(scope_level::DISTRICT);
+        $peer = $this->getDataGenerator()->create_user();
+        $higher = $this->getDataGenerator()->create_user();
+        $this->assignments->assign_user((int) $peer->id, $this->id('a1a'), scope_level::DISTRICT);
+        $this->assignments->assign_user((int) $higher->id, $this->id('a1a'), scope_level::ZONE);
+
+        $this->assertTrue($this->permissions->can_manage_assignment($districtactor, (int) $peer->id));
+        $this->assertFalse(
+            $this->permissions->can_manage_assignment($districtactor, (int) $higher->id),
+            'A target with broader authority is not subordinate to this actor',
+        );
+        $this->assertTrue($this->permissions->can_grant_scope_to_user(
+            $districtactor,
+            (int) $peer->id,
+            scope_level::DISTRICT,
+        ));
+        $this->assertFalse($this->permissions->can_grant_scope_to_user(
+            $districtactor,
+            (int) $peer->id,
+            scope_level::ZONE,
+        ));
+        $this->assertFalse($this->permissions->can_grant_scope_to_user(
+            $districtactor,
+            (int) $higher->id,
+            scope_level::NONE,
+        ));
+
+        $admin = (int) get_admin()->id;
+        $this->assertTrue($this->permissions->can_grant_scope_to_user(
+            $admin,
+            (int) $higher->id,
+            scope_level::ZONE,
+        ));
     }
 
     /**
@@ -432,9 +488,9 @@ final class permission_service_test extends \advanced_testcase {
         $this->assignments->assign_user((int) $insidescope->id, $this->id('a1a'), scope_level::NONE);
         $this->assignments->assign_user((int) $outsidescope->id, $this->id('a2a'), scope_level::NONE);
 
-        $this->assertTrue(
+        $this->assertFalse(
             $this->permissions->can_manage_assignment($districtactor, (int) $unassigned->id),
-            'A user with no assignment yet may be placed; the facility is scope checked separately'
+            'An unassigned user is not part of a delegated manager\'s jurisdiction',
         );
         $this->assertTrue($this->permissions->can_manage_assignment($districtactor, (int) $insidescope->id));
         $this->assertFalse(
@@ -447,7 +503,16 @@ final class permission_service_test extends \advanced_testcase {
         );
         $this->assertFalse($this->permissions->can_manage_assignment($districtactor, 0));
 
+        $withdrawn = $this->getDataGenerator()->create_user();
+        $this->assignments->assign_user((int) $withdrawn->id, $this->id('a1a'), scope_level::NONE);
+        $this->assignments->withdraw_assignment((int) $withdrawn->id);
+        $this->assertFalse(
+            $this->permissions->can_manage_assignment($districtactor, (int) $withdrawn->id),
+            'A withdrawn assignment is no longer part of a delegated manager\'s jurisdiction',
+        );
+
         $this->assertTrue($this->permissions->can_manage_assignment($admin, (int) $outsidescope->id));
+        $this->assertTrue($this->permissions->can_manage_assignment($admin, (int) $unassigned->id));
         $this->assertFalse(
             $this->permissions->can_manage_assignment($admin, $admin),
             'No user needs to change their own delegated scope, including a site administrator',

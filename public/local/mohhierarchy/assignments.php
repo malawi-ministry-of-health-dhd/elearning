@@ -23,12 +23,11 @@
  */
 
 use local_mohhierarchy\form\assign_form;
-use local_mohhierarchy\form\search_form;
 use local_mohhierarchy\local\assign_source;
 use local_mohhierarchy\local\hierarchy\assignment_service;
 use local_mohhierarchy\local\hierarchy\permission_service;
 use local_mohhierarchy\local\scope_level;
-use local_mohhierarchy\output\assignment_manager;
+use local_mohhierarchy\reportbuilder\local\systemreports\jurisdiction_users;
 
 require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -40,7 +39,6 @@ $systemcontext = context_system::instance();
 require_capability(permission_service::CAP_MANAGE_ASSIGNMENTS, $systemcontext);
 
 $search = optional_param('search', '', PARAM_TEXT);
-$page = max(0, optional_param('page', 0, PARAM_INT));
 $targetuserid = optional_param('userid', 0, PARAM_INT);
 $permissions = new permission_service();
 $assignments = new assignment_service();
@@ -131,7 +129,7 @@ if ($targetuserid > 0) {
             (int) $data->userid !== $targetuserid
             ||
             !$permissions->can_manage_assignment((int) $USER->id, (int) $data->userid)
-            || !$permissions->can_grant_scope((int) $USER->id, $scope)
+            || !$permissions->can_grant_scope_to_user((int) $USER->id, (int) $data->userid, $scope)
             || (
                 !$permissions->can_assign_user_to_facility((int) $USER->id, (int) $data->facilityid)
                 && (int) $data->facilityid !== (int) ($current->facilityid ?? 0)
@@ -162,25 +160,43 @@ if ($targetuserid > 0) {
     }
 
     echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string('editassignment', 'local_mohhierarchy'));
+    echo $OUTPUT->heading(get_string('transferuser', 'local_mohhierarchy'));
+    if (!is_siteadmin($USER)) {
+        echo $OUTPUT->notification(
+            get_string('jurisdictionnotice', 'local_mohhierarchy'),
+            \core\output\notification::NOTIFY_INFO,
+        );
+    }
     $form->display();
     echo $OUTPUT->footer();
     exit;
 }
 
-$searchform = new search_form(
-    $pageurl,
-    ['label' => get_string('searchusers', 'local_mohhierarchy')],
-    'get',
+$report = \core_reportbuilder\system_report_factory::create(
+    jurisdiction_users::class,
+    $systemcontext,
+    parameters: ['withcheckboxes' => false],
 );
-$searchform->set_data(['search' => $search]);
-
-/** @var \local_mohhierarchy\output\renderer $renderer */
-$renderer = $PAGE->get_renderer('local_mohhierarchy');
-$manager = new assignment_manager((int) $USER->id, $search, $pageurl, $page);
+if (is_siteadmin($USER) || has_capability(permission_service::CAP_CREATE_USER, $systemcontext)) {
+    $createurl = is_siteadmin($USER)
+        ? new moodle_url('/user/editadvanced.php', ['id' => -1])
+        : new moodle_url('/local/mohhierarchy/createuser.php');
+    $report->set_report_action(new \core_reportbuilder\output\report_action(
+        get_string('addnewuser', 'moodle'),
+        ['class' => 'btn btn-primary ms-auto', 'data-action' => 'add-user', 'href' => (string) $createurl],
+        'a',
+    ));
+}
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('assignmentadministration', 'local_mohhierarchy'));
-$searchform->display();
-echo $renderer->render_assignment_manager($manager);
+echo $OUTPUT->heading(is_siteadmin($USER)
+    ? get_string('assignmentadministration', 'local_mohhierarchy')
+    : get_string('jurisdictionusers', 'local_mohhierarchy'));
+if (!is_siteadmin($USER)) {
+    echo $OUTPUT->notification(
+        get_string('jurisdictionnotice', 'local_mohhierarchy'),
+        \core\output\notification::NOTIFY_INFO,
+    );
+}
+echo $report->output();
 echo $OUTPUT->footer();

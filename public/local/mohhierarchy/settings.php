@@ -27,6 +27,8 @@ use local_mohhierarchy\local\hierarchy\permission_service;
 
 defined('MOODLE_INTERNAL') || die();
 
+global $USER;
+
 if ($hassiteconfig) {
     $settings = new admin_settingpage(
         'local_mohhierarchy',
@@ -127,3 +129,28 @@ $ADMIN->add('localplugins', new admin_externalpage(
     new moodle_url('/local/mohhierarchy/assignments.php'),
     permission_service::CAP_MANAGE_ASSIGNMENTS,
 ));
+
+// Delegated hierarchy managers must not need Moodle's unrestricted user-update capability. Give
+// them the familiar Accounts > Browse list of users entry, but point it at the plugin-owned list
+// whose SQL and transfer actions are constrained to their active hierarchy jurisdiction. Site
+// administrators retain Moodle's complete core user report at /admin/user.php.
+$systemcontext = context_system::instance();
+$isscopedmanager = isloggedin()
+    && !isguestuser()
+    && !is_siteadmin($USER)
+    && has_capability(permission_service::CAP_MANAGE_ASSIGNMENTS, $systemcontext);
+if ($isscopedmanager) {
+    $scopedusersurl = (new moodle_url('/local/mohhierarchy/assignments.php'))->out(false);
+    $edituserspage = $ADMIN->locate('editusers');
+    if ($edituserspage instanceof admin_externalpage) {
+        $edituserspage->url = $scopedusersurl;
+        $edituserspage->req_capability = [permission_service::CAP_MANAGE_ASSIGNMENTS];
+    } else if ($ADMIN->locate('accounts') instanceof admin_category) {
+        $ADMIN->add('accounts', new admin_externalpage(
+            'editusers',
+            new lang_string('userlist', 'admin'),
+            $scopedusersurl,
+            permission_service::CAP_MANAGE_ASSIGNMENTS,
+        ));
+    }
+}

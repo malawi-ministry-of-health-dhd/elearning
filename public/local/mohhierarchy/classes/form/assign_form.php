@@ -132,7 +132,11 @@ class assign_form extends \moodleform {
         $scope = scope_level::tryFrom((string) ($data['scopelevel'] ?? ''));
         if ($scope === null) {
             $errors['scopelevel'] = get_string('error:invalidscopelevel', 'local_mohhierarchy', '');
-        } else if (!$permissions->can_grant_scope($actorid, $scope)) {
+        } else if (!$permissions->can_grant_scope_to_user(
+            $actorid,
+            (int) ($data['userid'] ?? 0),
+            $scope,
+        )) {
             $errors['scopelevel'] = get_string('error:scopetoobroad', 'local_mohhierarchy');
         }
 

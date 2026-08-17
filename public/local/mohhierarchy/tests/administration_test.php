@@ -33,6 +33,7 @@ use local_mohhierarchy\output\assignment_manager;
 use local_mohhierarchy\output\hierarchy_browser;
 use local_mohhierarchy\output\repair_report;
 use local_mohhierarchy\output\sync_dashboard;
+use local_mohhierarchy\reportbuilder\local\systemreports\jurisdiction_users;
 use local_mohhierarchy\task\sync_hierarchy;
 use local_mohhierarchy\task\sync_hierarchy_adhoc;
 
@@ -49,6 +50,7 @@ use local_mohhierarchy\task\sync_hierarchy_adhoc;
 #[\PHPUnit\Framework\Attributes\CoversClass(config::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(facility_repository::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(assignment_repository::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(jurisdiction_users::class)]
 final class administration_test extends \advanced_testcase {
     /**
      * The plugin test data generator.
@@ -202,6 +204,107 @@ final class administration_test extends \advanced_testcase {
     }
 
     /**
+     * Browse users opens the scoped plugin list for delegated managers and core for site admins.
+     */
+    public function test_browse_users_navigation_uses_scoped_list_for_delegated_manager(): void {
+        global $CFG;
+
+        $this->resetAfterTest();
+        require_once($CFG->libdir . '/adminlib.php');
+        $systemcontext = \context_system::instance();
+        $roleid = $this->getDataGenerator()->create_role();
+        assign_capability(
+            permission_service::CAP_MANAGE_ASSIGNMENTS,
+            CAP_ALLOW,
+            $roleid,
+            $systemcontext->id,
+        );
+        $manager = $this->getDataGenerator()->create_user();
+        role_assign($roleid, $manager->id, $systemcontext->id);
+        accesslib_clear_all_caches_for_unit_testing();
+        $this->setUser($manager);
+
+        $managerpage = admin_get_root(true, true)->locate('editusers');
+        $this->assertInstanceOf(\admin_externalpage::class, $managerpage);
+        $this->assertSame(
+            (new \moodle_url('/local/mohhierarchy/assignments.php'))->get_path(),
+            (new \moodle_url($managerpage->url))->get_path(),
+        );
+        $this->assertSame([permission_service::CAP_MANAGE_ASSIGNMENTS], $managerpage->req_capability);
+
+        $this->setAdminUser();
+        $adminpage = admin_get_root(true, true)->locate('editusers');
+        $this->assertInstanceOf(\admin_externalpage::class, $adminpage);
+        $this->assertSame(
+            (new \moodle_url('/admin/user.php'))->get_path(),
+            (new \moodle_url($adminpage->url))->get_path(),
+        );
+    }
+
+    /**
+     * The scoped user report keeps core's UI while enforcing jurisdiction in its base SQL.
+     */
+    public function test_jurisdiction_report_has_filters_actions_and_only_in_scope_rows(): void {
+        global $PAGE;
+
+        $this->resetAfterTest();
+        $PAGE->set_context(\context_system::instance());
+        $PAGE->set_url('/local/mohhierarchy/assignments.php');
+        $generator = $this->generator();
+        $service = new assignment_service();
+
+        $zonea = $generator->create_zone(['name' => 'Report Zone A']);
+        $zoneb = $generator->create_zone(['name' => 'Report Zone B']);
+        $districta = $generator->create_district(['zoneid' => $zonea->id, 'name' => 'Report District A']);
+        $districtb = $generator->create_district(['zoneid' => $zoneb->id, 'name' => 'Report District B']);
+        $facilitya = $generator->create_facility(['districtid' => $districta->id, 'name' => 'Report Facility A']);
+        $facilityb = $generator->create_facility(['districtid' => $districtb->id, 'name' => 'Report Facility B']);
+
+        $roleid = $this->getDataGenerator()->create_role();
+        assign_capability(
+            permission_service::CAP_MANAGE_ASSIGNMENTS,
+            CAP_ALLOW,
+            $roleid,
+            \context_system::instance()->id,
+        );
+        $manager = $this->getDataGenerator()->create_user();
+        role_assign($roleid, $manager->id, \context_system::instance()->id);
+        $inside = $this->getDataGenerator()->create_user([
+            'firstname' => 'Visible',
+            'lastname' => 'Jurisdiction User',
+        ]);
+        $outside = $this->getDataGenerator()->create_user([
+            'firstname' => 'Hidden',
+            'lastname' => 'Outside User',
+        ]);
+        $service->assign_user((int) $manager->id, (int) $facilitya->id, scope_level::ZONE);
+        $service->assign_user((int) $inside->id, (int) $facilitya->id, scope_level::NONE);
+        $service->assign_user((int) $outside->id, (int) $facilityb->id, scope_level::NONE);
+        accesslib_clear_all_caches_for_unit_testing();
+        $this->setUser($manager);
+
+        $report = \core_reportbuilder\system_report_factory::create(
+            jurisdiction_users::class,
+            \context_system::instance(),
+            parameters: ['withcheckboxes' => false],
+        );
+        [$basesql, $baseparams] = $report->get_base_condition();
+        $this->assertStringContainsString('mohscope.zoneid', $basesql);
+        $this->assertContains((int) $zonea->id, $baseparams);
+        $this->assertNotNull($report->get_filter('user:hierarchyzone'));
+        $this->assertNotNull($report->get_filter('user:hierarchydistrict'));
+        $this->assertNotNull($report->get_filter('user:hierarchyfacility'));
+        $this->assertNotNull($report->get_column('user:hierarchyzone'));
+        $this->assertNotNull($report->get_column('user:hierarchydistrict'));
+        $this->assertNotNull($report->get_column('user:hierarchyfacility'));
+
+        $html = $report->output();
+        $this->assertStringContainsString('Visible Jurisdiction User', $html);
+        $this->assertStringNotContainsString('Hidden Outside User', $html);
+        $this->assertStringContainsString(get_string('transferuser', 'local_mohhierarchy'), $html);
+    }
+
+    /**
      * Hierarchy administration searches are restricted in SQL to the actor's delegated scope.
      */
     public function test_hierarchy_search_is_scope_filtered(): void {
@@ -232,8 +335,7 @@ final class administration_test extends \advanced_testcase {
     }
 
     /**
-     * Assignment searches show in-scope assignments and searched unassigned users, but not an
-     * assignment held outside the actor's scope.
+     * Delegated assignment searches show only active in-scope assignments.
      */
     public function test_assignment_search_is_scope_filtered(): void {
         $this->resetAfterTest();
@@ -273,11 +375,23 @@ final class administration_test extends \advanced_testcase {
         );
         $matches = $repository->search_users('Searchable', 0, 0, $scope);
         $this->assertArrayHasKey((int) $inside->id, $matches);
-        $this->assertArrayHasKey((int) $unassigned->id, $matches);
+        $this->assertArrayNotHasKey((int) $unassigned->id, $matches);
         $this->assertArrayNotHasKey((int) $outside->id, $matches);
 
+        $service->withdraw_assignment((int) $inside->id);
+        $this->assertArrayNotHasKey(
+            (int) $inside->id,
+            $repository->search_users('Searchable', 0, 0, $scope),
+        );
+
+        // A site administrator's unrestricted search may still find an unassigned account.
+        $this->assertArrayHasKey(
+            (int) $unassigned->id,
+            $repository->search_users('Searchable'),
+        );
+
         $assignedonly = $repository->search_users('', 0, 0, $scope);
-        $this->assertArrayHasKey((int) $inside->id, $assignedonly);
+        $this->assertArrayNotHasKey((int) $inside->id, $assignedonly);
         $this->assertArrayNotHasKey((int) $unassigned->id, $assignedonly);
         $this->assertArrayNotHasKey((int) $outside->id, $assignedonly);
     }

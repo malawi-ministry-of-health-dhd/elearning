@@ -261,8 +261,9 @@ class assignment_repository {
     /**
      * Search Moodle users by username, first name, surname or email, with their assignment.
      *
-     * With no search term only users who already hold an assignment are returned, so opening the
-     * administration page does not list every account on the site.
+     * With no search term only users who already hold an assignment are returned. A delegated
+     * scope always requires an active assignment inside that scope, even during text search, so
+     * searching cannot reveal or target unassigned, withdrawn, or out-of-jurisdiction users.
      *
      * @param string $term Free text, matched case insensitively anywhere in the field.
      * @param int $limitfrom Offset for paging.
@@ -352,27 +353,25 @@ class assignment_repository {
             if (!$scope->grants_management()) {
                 $where[] = '1 = 0';
             } else {
-                // A searched unassigned user may be selected for a new in-scope placement. Users
-                // who already have an assignment must sit inside the actor's current scope.
-                $scopeconditions = ['a.id IS NULL'];
+                $where[] = 'a.id IS NOT NULL';
+                $where[] = 'a.active = 1';
                 switch ($scope->level) {
                     case scope_level::ZONE:
-                        $scopeconditions[] = 'a.zoneid = :scopezoneid';
+                        $where[] = 'a.zoneid = :scopezoneid';
                         $params['scopezoneid'] = $scope->zoneid;
                         break;
                     case scope_level::DISTRICT:
-                        $scopeconditions[] = 'a.districtid = :scopedistrictid';
+                        $where[] = 'a.districtid = :scopedistrictid';
                         $params['scopedistrictid'] = $scope->districtid;
                         break;
                     case scope_level::FACILITY:
-                        $scopeconditions[] = 'a.facilityid = :scopefacilityid';
+                        $where[] = 'a.facilityid = :scopefacilityid';
                         $params['scopefacilityid'] = $scope->facilityid;
                         break;
                     case scope_level::NONE:
                         // Already handled by grants_management().
                         break;
                 }
-                $where[] = '(' . implode(' OR ', $scopeconditions) . ')';
             }
         }
 
