@@ -62,6 +62,8 @@ $string['endpoints'] = 'Configured endpoints';
 $string['error:assignmentlocked'] = 'This hierarchy assignment is being changed by another request. Try again.';
 $string['error:authnotallowed'] = 'Select an enabled authentication method.';
 $string['error:cannotmanageuser'] = 'You are not allowed to manage this user\'s hierarchy assignment.';
+$string['error:crossjurisdictionscope'] = 'A transfer outside your jurisdiction must use Scope: None. ' .
+    'The receiving jurisdiction can grant management scope afterwards.';
 $string['error:choosepasswordmode'] = 'Choose either a supplied password or the generated-password option, not both.';
 $string['error:createscopeforbidden'] = 'A user created through this page must start with no management scope.';
 $string['error:createusernotallowed'] = 'You are not allowed to create hierarchy users.';
@@ -91,6 +93,7 @@ $string['error:scopetoobroad'] = 'You cannot grant a scope broader than your own
 $string['error:syncalreadyrunning'] = 'Another synchronisation is already running. This run was skipped.';
 $string['error:syncfailedsanitised'] = 'Hierarchy synchronisation failed: {$a}';
 $string['error:transportfailed'] = 'The API could not be reached at {$a->url}: {$a->detail}';
+$string['error:transferfacilitynotallowed'] = 'The selected transfer destination is inactive or unavailable.';
 $string['error:unexpectedshape'] = 'The {$a->dataset} response was not a JSON array, and carried no recognised wrapper ({$a->wrappers}).';
 $string['error:unknownassignment'] = 'No hierarchy assignment exists for user {$a}.';
 $string['error:unknowndistrictreference'] = 'Facility {$a->facility} refers to district {$a->district}, which is in neither the response nor the local copy. No local data was changed.';
@@ -112,7 +115,8 @@ $string['hierarchyownednotice'] = 'These hierarchy records are read-only and own
 $string['hierarchypath'] = '{$a->zone} / {$a->district} / {$a->facility}';
 $string['hierarchypathinactive'] = '{$a->zone} / {$a->district} / {$a->facility} (inactive current assignment)';
 $string['hierarchyplacement'] = 'Hierarchy placement';
-$string['jurisdictionnotice'] = 'Jurisdiction filter active: only users with an active hierarchy assignment inside your Zone, District or Facility are shown. Transfers are restricted to destinations inside the same jurisdiction.';
+$string['jurisdictionnotice'] = 'The default view shows users in your jurisdiction. Apply a Zone, District or Facility ' .
+    'filter to search the full active hierarchy. Transfer actions remain limited to users you are authorised to manage.';
 $string['jurisdictionusers'] = 'Users in my jurisdiction';
 $string['hierarchyusercreated'] = 'Hierarchy user created';
 $string['lastfailure'] = 'Last failed synchronisation';
@@ -231,6 +235,9 @@ $string['syncstage:savedistricts'] = 'Saving districts';
 $string['syncstage:savefacilities'] = 'Saving facilities';
 $string['syncstage:savezones'] = 'Saving zones';
 $string['transferuser'] = 'Transfer user';
+$string['transferjurisdictionnotice'] = 'You may transfer this user to any active facility, including another zone. ' .
+    'For a destination outside your jurisdiction, select Scope: None; the receiving jurisdiction can grant management ' .
+    'scope afterwards.';
 $string['syncstage:validate'] = 'Validating hierarchy relationships';
 $string['syncstarting'] = 'Starting hierarchy synchronisation from {$a}...';
 $string['syncstartingcli'] = 'Starting command-line hierarchy synchronisation...';

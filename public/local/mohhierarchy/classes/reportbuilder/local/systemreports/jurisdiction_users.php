@@ -25,11 +25,12 @@ use local_mohhierarchy\local\hierarchy\permission_service;
 use local_mohhierarchy\local\scope_level;
 
 /**
- * Moodle's Browse users report, constrained to the actor's hierarchy jurisdiction.
+ * Moodle's Browse users report with a jurisdiction default and hierarchy-wide filters.
  *
  * Core supplies the familiar filters, columns, paging and action menu. This subclass adds the
- * hierarchy columns and filters, a Transfer user action and a base SQL condition which browser
- * filters can never remove. Site administrators remain unrestricted.
+ * hierarchy columns and filters, a Transfer user action and a jurisdiction base condition. The
+ * default view is scoped to the actor; deliberately applying a hierarchy filter searches the full
+ * active hierarchy. Transfer actions remain restricted to targets the actor may manage.
  *
  * @package    local_mohhierarchy
  * @copyright  2026 Ministry of Health
@@ -61,6 +62,13 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
         $scope = (new permission_service())->get_scope((int) $USER->id);
         if (!$scope->grants_management()) {
             $this->add_base_condition_sql('1 = 0');
+            return;
+        }
+
+        // Applying a valid Zone, District or Facility filter is the explicit request to search
+        // outside the default jurisdiction. Other core filters (for example name or email) never
+        // widen the report by themselves.
+        if ($this->hierarchy_filter_applied()) {
             return;
         }
 
@@ -163,11 +171,18 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
         $zones = [];
         $districts = [];
         $facilities = [];
-        foreach ((new permission_service())->get_assignable_facilities((int) $USER->id) as $facility) {
-            $zones[(int) $facility->zoneid] = format_string($facility->zonename);
-            $districts[(int) $facility->districtid] = format_string($facility->districtname);
-            $facilities[(int) $facility->facilityid] = format_string($facility->facilityname);
+        // Filter forms are also constructed by a dynamic AJAX endpoint before Moodle assigns
+        // $PAGE->context. Always provide the report context explicitly instead of letting
+        // format_string() consult the global page object.
+        $formatname = fn(string $name): string => format_string($name, true, [
+            'context' => $this->get_context(),
+        ]);
+        foreach ((new permission_service())->get_filterable_facilities((int) $USER->id) as $facility) {
+            $zones[(int) $facility->zoneid] = $formatname($facility->zonename);
+            $districts[(int) $facility->districtid] = $formatname($facility->districtname);
+            $facilities[(int) $facility->facilityid] = $formatname($facility->facilityname);
         }
+        \core_collator::asort($facilities, \core_collator::SORT_NATURAL);
 
         $this->add_filter((new filter(
             select::class,
@@ -198,6 +213,27 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
         ))
             ->add_joins($this->hierarchy_joins())
             ->set_options($facilities));
+    }
+
+    /**
+     * Whether at least one valid hierarchy filter is currently applied to this report.
+     *
+     * Report Builder stores filter values per user and report. Asking each filter implementation
+     * whether it applies also validates the selected value against the server-built option list,
+     * so forged filter ids cannot remove the default jurisdiction condition.
+     *
+     * @return bool
+     */
+    protected function hierarchy_filter_applied(): bool {
+        $values = $this->get_filter_values();
+        foreach (['hierarchyzone', 'hierarchydistrict', 'hierarchyfacility'] as $name) {
+            $filter = $this->get_filter('user:' . $name);
+            if ($filter !== null && select::create($filter)->applies_to_values($values)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     #[\Override]

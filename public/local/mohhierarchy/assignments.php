@@ -67,7 +67,7 @@ if ($targetuserid > 0) {
     $zoneoptions = [];
     $districtoptions = [];
     $facilitypaths = [];
-    foreach ($permissions->get_assignable_facilities((int) $USER->id) as $facility) {
+    foreach ($permissions->get_transfer_facilities((int) $USER->id, $targetuserid) as $facility) {
         $facilityid = (int) $facility->facilityid;
         $districtid = (int) $facility->districtid;
         $zoneid = (int) $facility->zoneid;
@@ -128,11 +128,11 @@ if ($targetuserid > 0) {
         if (
             (int) $data->userid !== $targetuserid
             ||
-            !$permissions->can_manage_assignment((int) $USER->id, (int) $data->userid)
-            || !$permissions->can_grant_scope_to_user((int) $USER->id, (int) $data->userid, $scope)
-            || (
-                !$permissions->can_assign_user_to_facility((int) $USER->id, (int) $data->facilityid)
-                && (int) $data->facilityid !== (int) ($current->facilityid ?? 0)
+            !$permissions->can_transfer_assignment(
+                (int) $USER->id,
+                (int) $data->userid,
+                (int) $data->facilityid,
+                $scope,
             )
         ) {
             throw new required_capability_exception(
@@ -163,7 +163,7 @@ if ($targetuserid > 0) {
     echo $OUTPUT->heading(get_string('transferuser', 'local_mohhierarchy'));
     if (!is_siteadmin($USER)) {
         echo $OUTPUT->notification(
-            get_string('jurisdictionnotice', 'local_mohhierarchy'),
+            get_string('transferjurisdictionnotice', 'local_mohhierarchy'),
             \core\output\notification::NOTIFY_INFO,
         );
     }

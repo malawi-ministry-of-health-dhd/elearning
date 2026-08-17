@@ -476,6 +476,71 @@ final class permission_service_test extends \advanced_testcase {
     }
 
     /**
+     * A manageable user can move to another zone, but delegated authority cannot move with them.
+     */
+    public function test_cross_jurisdiction_transfer_requires_scope_none(): void {
+        $districtactor = $this->actor(scope_level::DISTRICT);
+        $target = $this->getDataGenerator()->create_user();
+        $outsidetarget = $this->getDataGenerator()->create_user();
+        $this->assignments->assign_user((int) $target->id, $this->id('a1a'), scope_level::NONE);
+        $this->assignments->assign_user((int) $outsidetarget->id, $this->id('a2a'), scope_level::NONE);
+
+        $destinations = $this->permissions->get_transfer_facilities($districtactor, (int) $target->id);
+        $this->assertEqualsCanonicalizing(
+            [$this->id('a1a'), $this->id('a2a'), $this->id('b1a')],
+            array_keys($destinations),
+        );
+        $this->assertArrayNotHasKey($this->id('a1b'), $destinations, 'Inactive destinations stay unavailable');
+        $this->assertEqualsCanonicalizing(
+            [$this->id('a1a'), $this->id('a2a'), $this->id('b1a')],
+            array_keys($this->permissions->get_filterable_facilities($districtactor)),
+        );
+
+        $this->assertTrue($this->permissions->can_transfer_assignment(
+            $districtactor,
+            (int) $target->id,
+            $this->id('b1a'),
+            scope_level::NONE,
+        ));
+        $this->assertFalse($this->permissions->can_transfer_assignment(
+            $districtactor,
+            (int) $target->id,
+            $this->id('b1a'),
+            scope_level::DISTRICT,
+        ));
+        $this->assertTrue($this->permissions->can_transfer_assignment(
+            $districtactor,
+            (int) $target->id,
+            $this->id('a1a'),
+            scope_level::DISTRICT,
+        ));
+        $this->assertFalse($this->permissions->can_transfer_assignment(
+            $districtactor,
+            (int) $target->id,
+            $this->id('a1b'),
+            scope_level::NONE,
+        ));
+
+        $this->assertSame(
+            [],
+            $this->permissions->get_transfer_facilities($districtactor, (int) $outsidetarget->id),
+        );
+        $this->assertFalse($this->permissions->can_transfer_assignment(
+            $districtactor,
+            (int) $outsidetarget->id,
+            $this->id('b1a'),
+            scope_level::NONE,
+        ));
+
+        $this->assertTrue($this->permissions->can_transfer_assignment(
+            (int) get_admin()->id,
+            (int) $target->id,
+            $this->id('b1a'),
+            scope_level::ZONE,
+        ));
+    }
+
+    /**
      * Managing another user's assignment needs the capability, and the target must be in scope.
      */
     public function test_can_manage_assignment(): void {

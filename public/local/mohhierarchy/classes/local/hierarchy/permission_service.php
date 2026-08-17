@@ -353,6 +353,49 @@ class permission_service {
     }
 
     /**
+     * Whether the actor may transfer this user to a facility with the requested scope.
+     *
+     * Delegated managers may send a user currently under their authority to any active facility,
+     * including another zone. They cannot delegate authority in a destination they do not manage,
+     * so an out-of-jurisdiction transfer must use scope none. A receiving manager can grant an
+     * appropriate scope afterwards. Site administrators may transfer and grant any valid scope.
+     *
+     * The current facility is allowed even when it has become inactive, so an administrator can
+     * safely correct only the scope of an existing historical placement.
+     *
+     * @param int $actorid The acting user.
+     * @param int $targetuserid The user being transferred.
+     * @param int $facilityid The requested destination facility.
+     * @param scope_level $scope The requested scope at the destination.
+     * @return bool
+     */
+    public function can_transfer_assignment(
+        int $actorid,
+        int $targetuserid,
+        int $facilityid,
+        scope_level $scope,
+    ): bool {
+        if (!$this->can_grant_scope_to_user($actorid, $targetuserid, $scope)) {
+            return false;
+        }
+
+        $current = $this->assignments->get_active_for_user($targetuserid);
+        $keepingcurrent = $current !== null && (int) $current->facilityid === $facilityid;
+        if (!$keepingcurrent && !$this->facilities->matches_scope($facilityid)) {
+            return false;
+        }
+        if ($this->is_admin($actorid) || $scope === scope_level::NONE) {
+            return true;
+        }
+
+        // A delegated scope may be granted only where the actor already has authority. This is
+        // deliberately stricter than the destination rule, which permits a scope-none transfer
+        // anywhere in the active hierarchy.
+        $own = $this->get_scope($actorid);
+        return $this->facility_in_scope($own, $facilityid, !$keepingcurrent);
+    }
+
+    /**
      * The scope levels the actor may choose from, for building a form menu.
      *
      * @param int $actorid The acting user.
@@ -388,6 +431,49 @@ class permission_service {
         }
 
         return $this->facilities->get_assignment_options($scope);
+    }
+
+    /**
+     * Active destination facilities available when transferring a manageable user.
+     *
+     * Unlike creation and ordinary hierarchy selection, transfer destinations are intentionally
+     * not restricted to the actor's own location. The target check remains jurisdiction-bound,
+     * and {@see can_transfer_assignment()} controls the scope that may accompany the move.
+     *
+     * @param int $actorid The acting user.
+     * @param int $targetuserid The user being transferred.
+     * @return \stdClass[] Keyed by local facility id.
+     */
+    public function get_transfer_facilities(int $actorid, int $targetuserid): array {
+        if (!$this->can_manage_assignment($actorid, $targetuserid)) {
+            return [];
+        }
+
+        return $this->facilities->get_assignment_options();
+    }
+
+    /**
+     * Active hierarchy paths available in the jurisdiction users report filters.
+     *
+     * A delegated manager must have both the assignment capability and an active management scope
+     * before the report can expose hierarchy-wide filter choices. Transfer actions remain subject
+     * to {@see can_manage_assignment()} even when a filter displays a user outside the actor's scope.
+     *
+     * @param int $actorid The acting user.
+     * @return \stdClass[] Keyed by local facility id.
+     */
+    public function get_filterable_facilities(int $actorid): array {
+        if ($this->is_admin($actorid)) {
+            return $this->facilities->get_assignment_options();
+        }
+        if (!$this->has_capability($actorid, self::CAP_MANAGE_ASSIGNMENTS)) {
+            return [];
+        }
+        if (!$this->get_scope($actorid)->grants_management()) {
+            return [];
+        }
+
+        return $this->facilities->get_assignment_options();
     }
 
     /**

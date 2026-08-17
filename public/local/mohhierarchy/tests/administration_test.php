@@ -242,14 +242,14 @@ final class administration_test extends \advanced_testcase {
     }
 
     /**
-     * The scoped user report keeps core's UI while enforcing jurisdiction in its base SQL.
+     * The user report defaults to jurisdiction and searches all hierarchy when explicitly filtered.
      */
     public function test_jurisdiction_report_has_filters_actions_and_only_in_scope_rows(): void {
         global $PAGE;
 
         $this->resetAfterTest();
-        $PAGE->set_context(\context_system::instance());
-        $PAGE->set_url('/local/mohhierarchy/assignments.php');
+        // Dynamic Report Builder filter requests construct the source before setting page context.
+        $PAGE = new \moodle_page();
         $generator = $this->generator();
         $service = new assignment_service();
 
@@ -257,8 +257,9 @@ final class administration_test extends \advanced_testcase {
         $zoneb = $generator->create_zone(['name' => 'Report Zone B']);
         $districta = $generator->create_district(['zoneid' => $zonea->id, 'name' => 'Report District A']);
         $districtb = $generator->create_district(['zoneid' => $zoneb->id, 'name' => 'Report District B']);
-        $facilitya = $generator->create_facility(['districtid' => $districta->id, 'name' => 'Report Facility A']);
-        $facilityb = $generator->create_facility(['districtid' => $districtb->id, 'name' => 'Report Facility B']);
+        // Reverse facility names relative to hierarchy order to prove the filter sorts by facility name.
+        $facilitya = $generator->create_facility(['districtid' => $districta->id, 'name' => 'Zulu Facility']);
+        $facilityb = $generator->create_facility(['districtid' => $districtb->id, 'name' => 'Alpha Facility']);
 
         $roleid = $this->getDataGenerator()->create_role();
         assign_capability(
@@ -291,17 +292,64 @@ final class administration_test extends \advanced_testcase {
         [$basesql, $baseparams] = $report->get_base_condition();
         $this->assertStringContainsString('mohscope.zoneid', $basesql);
         $this->assertContains((int) $zonea->id, $baseparams);
-        $this->assertNotNull($report->get_filter('user:hierarchyzone'));
+        $zonefilter = $report->get_filter('user:hierarchyzone');
+        $this->assertNotNull($zonefilter);
         $this->assertNotNull($report->get_filter('user:hierarchydistrict'));
-        $this->assertNotNull($report->get_filter('user:hierarchyfacility'));
+        $facilityfilter = $report->get_filter('user:hierarchyfacility');
+        $this->assertNotNull($facilityfilter);
+        $this->assertArrayHasKey((int) $zonea->id, $zonefilter->get_options());
+        $this->assertArrayHasKey((int) $zoneb->id, $zonefilter->get_options());
+        $this->assertArrayHasKey((int) $facilitya->id, $facilityfilter->get_options());
+        $this->assertArrayHasKey((int) $facilityb->id, $facilityfilter->get_options());
+        $this->assertSame(
+            [(int) $facilityb->id, (int) $facilitya->id],
+            array_keys($facilityfilter->get_options()),
+        );
         $this->assertNotNull($report->get_column('user:hierarchyzone'));
         $this->assertNotNull($report->get_column('user:hierarchydistrict'));
         $this->assertNotNull($report->get_column('user:hierarchyfacility'));
 
+        $PAGE->set_context(\context_system::instance());
+        $PAGE->set_url('/local/mohhierarchy/assignments.php');
         $html = $report->output();
         $this->assertStringContainsString('Visible Jurisdiction User', $html);
         $this->assertStringNotContainsString('Hidden Outside User', $html);
         $this->assertStringContainsString(get_string('transferuser', 'local_mohhierarchy'), $html);
+
+        $this->assertTrue($report->set_filter_values([
+            'user:hierarchyzone_operator' => \core_reportbuilder\local\filters\select::EQUAL_TO,
+            'user:hierarchyzone_value' => (int) $zoneb->id,
+        ]));
+        // The browser reloads the dynamic report table in a new request after filter submission.
+        \core_reportbuilder\manager::reset_caches();
+        $filteredreport = \core_reportbuilder\system_report_factory::create(
+            jurisdiction_users::class,
+            \context_system::instance(),
+            parameters: ['withcheckboxes' => false],
+        );
+        [$filteredbasesql] = $filteredreport->get_base_condition();
+        $this->assertStringNotContainsString('mohscope.zoneid', $filteredbasesql);
+
+        $filteredhtml = $filteredreport->output();
+        $this->assertStringContainsString('Hidden Outside User', $filteredhtml);
+        $this->assertStringNotContainsString('Visible Jurisdiction User', $filteredhtml);
+        $this->assertStringNotContainsString(get_string('transferuser', 'local_mohhierarchy'), $filteredhtml);
+
+        $this->assertTrue($filteredreport->set_filter_values([
+            'user:hierarchyzone_operator' => \core_reportbuilder\local\filters\select::EQUAL_TO,
+            'user:hierarchyzone_value' => 999999,
+        ]));
+        \core_reportbuilder\manager::reset_caches();
+        $forgedreport = \core_reportbuilder\system_report_factory::create(
+            jurisdiction_users::class,
+            \context_system::instance(),
+            parameters: ['withcheckboxes' => false],
+        );
+        [$forgedbasesql] = $forgedreport->get_base_condition();
+        $this->assertStringContainsString('mohscope.zoneid', $forgedbasesql);
+
+        $this->assertTrue($forgedreport->set_filter_values([]));
+        \core_reportbuilder\manager::reset_caches();
     }
 
     /**

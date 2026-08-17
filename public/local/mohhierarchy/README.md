@@ -203,10 +203,15 @@ user scope `none`.
 Assignments are administered separately at `/local/mohhierarchy/assignments.php`. Its Facility
 control is searchable and selecting a Facility automatically populates Zone and District. The
 canonical assignment still stores and validates Facility, deriving both ancestors on the server.
-For delegated managers, the list and its search are always filtered to active assignments inside
-their own Zone, District or Facility. A transfer is allowed only when both the user's current
-assignment and the destination Facility are inside that jurisdiction, and the requested management
-scope is no broader than the acting manager's own scope.
+For delegated managers, the default list shows active assignments inside their own Zone, District
+or Facility. The Zone, District and Facility filters contain the full active hierarchy; explicitly
+applying one of those filters searches matching assignments outside the default jurisdiction too.
+Seeing an outside user does not grant authority over that user: Transfer actions remain available
+only for users the actor may manage. A manager may transfer one of those authorised users to any
+active Facility, including a Facility in another Zone. When the destination is outside the acting
+manager's jurisdiction, the transferred user must receive scope `none`; a manager in the receiving
+jurisdiction or a site administrator can grant management scope afterwards. Transfers within the
+actor's jurisdiction may use any scope no broader than the actor's own scope.
 The specialist consistency report remains available directly at
 `/local/mohhierarchy/repair.php`; it is intentionally omitted from the main Site administration
 menu to keep routine hierarchy administration focused. Dry-run is available and facility conflicts

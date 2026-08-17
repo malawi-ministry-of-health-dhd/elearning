@@ -22,8 +22,9 @@ use local_mohhierarchy\local\scope_level;
 /**
  * Assign one user to a facility, with a scope level.
  *
- * The facility list and the scope menu are both built from what the acting administrator is allowed
- * to do, and both are re-checked in validation, so a tampered submission cannot widen either.
+ * The facility list contains all active transfer destinations, while the scope menu is limited by
+ * the acting administrator's authority. Validation rechecks the target, destination and requested
+ * scope, requiring scope none when a delegated manager transfers outside their own jurisdiction.
  * Zone and District are displayed for context and populated by the searchable Facility control;
  * the assignment service still derives them from Facility again on save.
  *
@@ -122,11 +123,13 @@ class assign_form extends \moodleform {
         $facilityid = (int) ($data['facilityid'] ?? 0);
         if ($facilityid <= 0) {
             $errors['facilityid'] = get_string('error:facilityrequired', 'local_mohhierarchy');
-        } else if (
-            !$permissions->can_assign_user_to_facility($actorid, $facilityid)
-            && $facilityid !== (int) ($this->_customdata['currentfacilityid'] ?? 0)
-        ) {
-            $errors['facilityid'] = get_string('error:facilitynotallowed', 'local_mohhierarchy');
+        } else if (!$permissions->can_transfer_assignment(
+            $actorid,
+            (int) ($data['userid'] ?? 0),
+            $facilityid,
+            scope_level::NONE,
+        )) {
+            $errors['facilityid'] = get_string('error:transferfacilitynotallowed', 'local_mohhierarchy');
         }
 
         $scope = scope_level::tryFrom((string) ($data['scopelevel'] ?? ''));
@@ -138,6 +141,13 @@ class assign_form extends \moodleform {
             $scope,
         )) {
             $errors['scopelevel'] = get_string('error:scopetoobroad', 'local_mohhierarchy');
+        } else if (!$permissions->can_transfer_assignment(
+            $actorid,
+            (int) ($data['userid'] ?? 0),
+            $facilityid,
+            $scope,
+        )) {
+            $errors['scopelevel'] = get_string('error:crossjurisdictionscope', 'local_mohhierarchy');
         }
 
         if (!$permissions->can_manage_assignment($actorid, (int) ($data['userid'] ?? 0))) {

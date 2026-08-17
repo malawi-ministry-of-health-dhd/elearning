@@ -97,5 +97,25 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026081700, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026081701) {
+        // Cross-jurisdiction transfer destinations require no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081701, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081702) {
+        // Hierarchy-wide report filter options require no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081702, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081703) {
+        // AJAX-safe report filter label formatting requires no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081703, 'local', 'mohhierarchy');
+    }
+
+    if ($oldversion < 2026081704) {
+        // Alphabetical facility filter ordering changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081704, 'local', 'mohhierarchy');
+    }
+
     return true;
 }
