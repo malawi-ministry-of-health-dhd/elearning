@@ -8,6 +8,20 @@
 
 Moodle is designed to allow educators, administrators and learners to create personalised learning environments with a single robust, secure and integrated system.
 
+## Ministry of Health hierarchy plugins
+
+This repository includes the Ministry of Health hierarchy plugins for Moodle. They synchronise the
+Zipatala organisation structure and connect users to:
+
+```text
+Zone -> District -> Facility -> User
+```
+
+- [Read the installation and administrator guide](public/local/mohhierarchy/README.md).
+- [Download the latest web-installer and server-file packages](https://github.com/malawi-ministry-of-health-dhd/elearning/releases/latest).
+
+Install `local_mohhierarchy` first, followed by `profilefield_mohhierarchy`.
+
 ## Documentation
 
 - Read our [User documentation][3]

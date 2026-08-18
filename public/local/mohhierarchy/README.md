@@ -11,6 +11,53 @@ Zipatala is the hierarchy source of truth. Moodle keeps a normalised local copy 
 performance, reporting and server-side authorisation. Remote records which disappear are
 deactivated rather than deleted.
 
+## What the plugins provide
+
+Together, the two plugins let an organisation:
+
+- synchronise Zones, Districts and Facilities from Zipatala;
+- browse the synchronised hierarchy in Moodle;
+- place each Moodle user at one Facility, with District and Zone derived automatically;
+- let authorised Zone, District or Facility managers see and manage users in their jurisdiction;
+- create users through either Moodle's administrator form or a restricted hierarchy-manager form;
+- transfer an authorised user to another Facility, including one in another Zone;
+- keep assignment and synchronisation audit history.
+
+## Download
+
+Download the latest packages from the project’s
+[GitHub Releases page](https://github.com/malawi-ministry-of-health-dhd/elearning/releases/latest).
+
+Every release contains these files:
+
+| Release asset | Use it for |
+| --- | --- |
+| `local_mohhierarchy.zip` | Installing the local plugin through Moodle's web installer |
+| `profilefield_mohhierarchy.zip` | Installing the profile-field plugin through Moodle's web installer |
+| `local_mohhierarchy-plugin-files.zip` | Copying the local plugin directly to the server filesystem |
+| `profilefield_mohhierarchy-plugin-files.zip` | Copying the profile-field plugin directly to the server filesystem |
+| `SHA256SUMS.txt` | Verifying that downloaded ZIP files have not changed |
+
+The source repository is
+[malawi-ministry-of-health-dhd/elearning](https://github.com/malawi-ministry-of-health-dhd/elearning).
+
+To verify downloads, place `SHA256SUMS.txt` beside the ZIP files and run one of:
+
+```bash
+# Linux.
+sha256sum --check SHA256SUMS.txt
+
+# macOS.
+shasum -a 256 --check SHA256SUMS.txt
+```
+
+Always install the plugins in this order:
+
+1. `local_mohhierarchy`
+2. `profilefield_mohhierarchy`
+
+The profile-field plugin depends on the local plugin and cannot operate by itself.
+
 ## Supported Moodle version
 
 This release supports Moodle 5.2 (`$version >= 2026042000`) on a supported PHP and database version
@@ -34,39 +81,95 @@ JavaScript filtering is a user-interface convenience, not a security control. Th
 and validates every submitted facility, its active ancestry and the acting user's scope. Existing
 Moodle custom fields are not modified.
 
-More detail is available in `docs/architecture.md`, `docs/delegated-user-creation.md`, and
-`docs/privacy-and-consistency.md`.
+More detail is available in [Architecture](docs/architecture.md),
+[Delegated user creation](docs/delegated-user-creation.md), and
+[Privacy and consistency](docs/privacy-and-consistency.md).
 
-## Installation
+## Installation method 1: Moodle web installer
 
-Install in this order:
+Use this method when Moodle is allowed to write to its plugin directories.
 
-1. `local_mohhierarchy`
-2. `profilefield_mohhierarchy`
+1. Download `local_mohhierarchy.zip` from GitHub Releases.
+2. Sign in to Moodle as a site administrator.
+3. Open `Site administration > Plugins > Install plugins`.
+4. Upload `local_mohhierarchy.zip`.
+5. Confirm that the detected plugin type is **Local plugin** and the plugin directory is
+   **mohhierarchy**.
+6. Select **Install plugin from the ZIP file**, then complete Moodle's database upgrade pages.
+7. Return to `Site administration > Plugins > Install plugins`.
+8. Upload `profilefield_mohhierarchy.zip`.
+9. Confirm that the detected plugin type is **Profile field type** and complete the installation.
+10. Open `Site administration > Development > Purge caches` and select **Purge all caches**.
 
-For a traditional Moodle tree, extract the plugins to:
+The two web-installer ZIPs each contain exactly one directory named `mohhierarchy`, as Moodle
+requires. Do not place one ZIP inside another ZIP or add an extra parent directory.
+
+If validation reports a write-access error for `local` or `user/profile/field`, do not make the
+whole Moodle site world-writable. Ask the server administrator to use the file-installation method
+below and apply ownership and permissions appropriate for that server.
+
+## Installation method 2: server files or SSH
+
+Use the `*-plugin-files.zip` assets for this method. Their plugin files are directly at the ZIP
+root, ready to extract into a directory that you create.
+
+For a traditional Moodle installation, the final directories are:
 
 ```text
 <moodle-root>/local/mohhierarchy
 <moodle-root>/user/profile/field/mohhierarchy
 ```
 
-For Moodle's Composer/public-directory layout, these paths are beneath `$CFG->dirroot`, commonly:
+For Moodle's newer public-directory layout, they are commonly:
 
 ```text
 <repository>/public/local/mohhierarchy
 <repository>/public/user/profile/field/mohhierarchy
 ```
 
-Then run:
+Example for a public-directory installation at `/var/www/html`:
 
 ```bash
+cd /var/www/html
+
+mkdir -p public/local/mohhierarchy
+unzip /path/to/local_mohhierarchy-plugin-files.zip \
+  -d public/local/mohhierarchy
+
+mkdir -p public/user/profile/field/mohhierarchy
+unzip /path/to/profilefield_mohhierarchy-plugin-files.zip \
+  -d public/user/profile/field/mohhierarchy
+
 php admin/cli/upgrade.php --non-interactive
 php admin/cli/purge_caches.php
 ```
 
-The packaged archives contain plugin files directly at their ZIP roots. Create the target
-directory first, then extract the corresponding archive into it.
+Run the commands as the account that normally maintains Moodle and can write to Moodle's dataroot.
+On a typical Debian or Ubuntu server this may be the web-service account:
+
+```bash
+sudo -u www-data php admin/cli/upgrade.php --non-interactive
+sudo -u www-data php admin/cli/purge_caches.php
+```
+
+Do not run those exact `sudo` commands blindly: the correct account and paths depend on the server.
+After extraction, confirm that the web server can read the files and that `config.php` and dataroot
+retain their existing secure permissions.
+
+## Installation method 3: existing Git deployment
+
+If both plugin directories are already tracked in the deployed repository, pulling the branch is
+enough to copy the new code. A pull does not run Moodle's upgrade automatically:
+
+```bash
+cd /var/www/html
+git pull --ff-only
+php admin/cli/upgrade.php --non-interactive
+php admin/cli/purge_caches.php
+```
+
+Use the appropriate deployment account, review the incoming commit, and back up production before
+upgrading.
 
 ## Upgrades
 
@@ -80,6 +183,23 @@ php admin/cli/purge_caches.php
 
 Do not copy a new version over a partially deleted directory. Review release notes and test the
 upgrade on a copy of production first.
+
+## First-time setup checklist
+
+After both plugins are installed:
+
+1. Configure the Zipatala connection under
+   `Site administration > Plugins > Local plugins > MoH hierarchy`.
+2. Decide whether synchronisation should be scheduled or manual.
+3. Run the first synchronisation and confirm that Zones, Districts and Facilities were imported.
+4. Open the **Hierarchy browser** and check the imported names and Facility codes.
+5. Assign each hierarchy manager to a Facility and choose their management scope.
+6. Give hierarchy managers an appropriate Moodle system role containing the required plugin
+   capabilities.
+7. Create or assign ordinary users. Their scope should normally remain **None**.
+
+Hierarchy placement and Moodle role permissions are separate. A manager needs both an active
+hierarchy assignment with a suitable scope and the required Moodle capabilities.
 
 ## Zipatala configuration
 
@@ -103,6 +223,86 @@ Endpoint values may be relative to the base URL or complete HTTP(S) URLs. Produc
 use HTTPS. The bearer token is optional; when configured it is sent as an `Authorization: Bearer`
 header. It is masked in administration, redacted from exceptions and logs, and must not be placed
 in source control or command lines.
+
+For a manual-only installation, clear **Enable scheduled synchronisation** and save the settings.
+Manual synchronisation and the CLI command remain available when this setting is disabled.
+
+## How to use the plugins
+
+### 1. Import the hierarchy
+
+Open:
+
+`Site administration > Plugins > Local plugins > Hierarchy synchronisation`
+
+Select **Synchronise now**. Moodle queues the work as a background task and shows its progress.
+Normal Moodle cron will start the task. A site administrator can use **Run now** when that action is
+shown, or use the CLI command documented below.
+
+After a successful first synchronisation, the page shows current counts and synchronisation
+history. Failed synchronisations do not deactivate or replace the last valid local hierarchy.
+
+### 2. Check the imported hierarchy
+
+Open:
+
+`Site administration > Plugins > Local plugins > Hierarchy browser`
+
+Search by Zone, District, Facility name or Facility code. The browser is read-only because
+Zipatala owns these records. Correct hierarchy data in Zipatala and synchronise again; do not edit
+the local hierarchy tables manually.
+
+### 3. Assign a hierarchy manager
+
+Open:
+
+`Site administration > Plugins > Local plugins > User hierarchy assignments`
+
+Find the user, open their action menu, and choose **Transfer user** or the available hierarchy
+assignment action. Select a Facility; Moodle fills its District and Zone automatically. Then choose
+the manager's scope:
+
+- **None:** the user has a placement but cannot manage hierarchy users;
+- **Facility:** the user may manage permitted users at that Facility;
+- **District:** the user may manage permitted users in that District;
+- **Zone:** the user may manage permitted users in that Zone.
+
+Next, assign the user an appropriate Moodle role at the **System** context. A typical delegated
+manager role needs:
+
+- `local/mohhierarchy:viewhierarchy`;
+- `local/mohhierarchy:viewassignments`;
+- `local/mohhierarchy:manageassignments`, when transfers are allowed;
+- `local/mohhierarchy:createuser`, when account creation is allowed.
+
+Do not normally grant delegated hierarchy managers `moodle/user:create`, `moodle/user:update` or
+`moodle/user:delete`. Those capabilities expose broader Moodle account-management routes that are
+not limited by this plugin's hierarchy page.
+
+### 4. Create users
+
+Site administrators can use Moodle's standard **Add a new user** page. Its **Organisation
+hierarchy** section requires a Facility and automatically derives District and Zone.
+
+Delegated hierarchy managers use:
+
+`Site administration > Plugins > Local plugins > Create hierarchy user`
+
+They can select only an active Facility allowed by their own assignment and scope. Every new user
+starts with scope **None**, preventing the creator from granting management authority during
+account creation.
+
+### 5. Find and transfer users
+
+The **User hierarchy assignments** page initially shows users in the current manager's
+jurisdiction. Filters can search names, email addresses, usernames, assignment status, Zones,
+Districts and Facilities. The action menu shows **Transfer user** only when the current manager is
+authorised to manage that user.
+
+Selecting a new Facility derives the destination District and Zone. A permitted user may be moved
+to another Zone, but a transfer outside the actor's own jurisdiction must leave the transferred
+user with scope **None**. A manager in the receiving jurisdiction or a site administrator can grant
+an appropriate scope later.
 
 ## Cron and synchronisation
 
@@ -132,9 +332,14 @@ action when a queued task has not yet been picked up by cron.
 Command-line synchronisation:
 
 ```bash
+# Traditional Moodle directory layout.
 php local/mohhierarchy/cli/sync.php
 php local/mohhierarchy/cli/sync.php --force
 php local/mohhierarchy/cli/sync.php --help
+
+# Public-directory layout, when run from the repository root.
+php public/local/mohhierarchy/cli/sync.php
+php public/local/mohhierarchy/cli/sync.php --force
 ```
 
 `--force` ignores a queued manual task but never bypasses the live synchronisation lock. Failures
