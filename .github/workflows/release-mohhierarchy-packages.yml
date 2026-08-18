@@ -1,0 +1,122 @@
+name: Release MOH hierarchy packages
+
+on:
+  push:
+    branches:
+      - main
+      - hierachy_plugin
+    paths:
+      - packages/local_mohhierarchy.zip
+      - packages/profilefield_mohhierarchy.zip
+      - packages/webinstall/local_mohhierarchy.zip
+      - packages/webinstall/profilefield_mohhierarchy.zip
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: moh-hierarchy-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish plugin packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@v4
+
+      - name: Read and validate plugin versions
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          local_release="$(awk -F"'" '/\$plugin->release/{print $2; exit}' \
+            public/local/mohhierarchy/version.php)"
+          profile_release="$(awk -F"'" '/\$plugin->release/{print $2; exit}' \
+            public/user/profile/field/mohhierarchy/version.php)"
+
+          if [[ -z "$local_release" || -z "$profile_release" ]]; then
+            echo "Could not read both plugin release versions." >&2
+            exit 1
+          fi
+
+          tag="mohhierarchy-local-v${local_release}-profile-v${profile_release}"
+          title="MOH Hierarchy plugins — local ${local_release} / profile field ${profile_release}"
+
+          echo "local_release=$local_release" >> "$GITHUB_OUTPUT"
+          echo "profile_release=$profile_release" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+
+      - name: Validate package layout
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s packages/local_mohhierarchy.zip
+          test -s packages/profilefield_mohhierarchy.zip
+          test -s packages/webinstall/local_mohhierarchy.zip
+          test -s packages/webinstall/profilefield_mohhierarchy.zip
+
+          unzip -Z1 packages/local_mohhierarchy.zip | grep -Fx 'version.php' > /dev/null
+          unzip -Z1 packages/profilefield_mohhierarchy.zip | grep -Fx 'version.php' > /dev/null
+          unzip -Z1 packages/webinstall/local_mohhierarchy.zip \
+            | grep -Fx 'mohhierarchy/version.php' > /dev/null
+          unzip -Z1 packages/webinstall/profilefield_mohhierarchy.zip \
+            | grep -Fx 'mohhierarchy/version.php' > /dev/null
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir release-assets
+          cp packages/webinstall/local_mohhierarchy.zip \
+            release-assets/local_mohhierarchy.zip
+          cp packages/webinstall/profilefield_mohhierarchy.zip \
+            release-assets/profilefield_mohhierarchy.zip
+          cp packages/local_mohhierarchy.zip \
+            release-assets/local_mohhierarchy-plugin-files.zip
+          cp packages/profilefield_mohhierarchy.zip \
+            release-assets/profilefield_mohhierarchy-plugin-files.zip
+
+          cd release-assets
+          sha256sum ./*.zip > SHA256SUMS.txt
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.versions.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.versions.outputs.title }}
+          LOCAL_RELEASE: ${{ steps.versions.outputs.local_release }}
+          PROFILE_RELEASE: ${{ steps.versions.outputs.profile_release }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          assets=(release-assets/*.zip release-assets/SHA256SUMS.txt)
+          notes="Install local_mohhierarchy ${LOCAL_RELEASE} first, then profilefield_mohhierarchy ${PROFILE_RELEASE}. The standard ZIP names are ready for Moodle's web installer; the *-plugin-files.zip assets contain plugin files directly."
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+            gh release edit "$RELEASE_TAG" \
+              --title "$RELEASE_TITLE" \
+              --notes "$notes"
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --target "$GITHUB_SHA" \
+              --title "$RELEASE_TITLE" \
+              --notes "$notes"
+          fi
+
+      - name: Add release link to the workflow summary
+        env:
+          RELEASE_TAG: ${{ steps.versions.outputs.tag }}
+        shell: bash
+        run: |
+          echo "Released [${RELEASE_TAG}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG})" \
+            >> "$GITHUB_STEP_SUMMARY"
