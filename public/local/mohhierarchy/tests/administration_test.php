@@ -336,6 +336,13 @@ final class administration_test extends \advanced_testcase {
             \context_system::instance(),
             parameters: ['withcheckboxes' => false],
         );
+
+        $fullnamecolumn = $report->get_column('user:fullnamewithpicturelink');
+        $this->assertNotNull($fullnamecolumn);
+        $this->assertSame(
+            'local-mohhierarchy-fullname',
+            $fullnamecolumn->get_attributes()['class'] ?? null,
+        );
         [$basesql, $baseparams] = $report->get_base_condition();
         $this->assertStringContainsString('mohscope.zoneid', $basesql);
         $this->assertContains((int) $zonea->id, $baseparams);

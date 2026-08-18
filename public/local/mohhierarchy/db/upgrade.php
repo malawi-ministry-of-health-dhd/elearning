@@ -142,5 +142,10 @@ function xmldb_local_mohhierarchy_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026081709, 'local', 'mohhierarchy');
     }
 
+    if ($oldversion < 2026081800) {
+        // The wider full-name report column changes presentation only; no stored data changes.
+        upgrade_plugin_savepoint(true, 2026081800, 'local', 'mohhierarchy');
+    }
+
     return true;
 }

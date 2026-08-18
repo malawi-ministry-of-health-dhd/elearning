@@ -126,6 +126,11 @@ class jurisdiction_users extends \core_admin\reportbuilder\local\systemreports\u
     public function add_columns(): void {
         parent::add_columns();
 
+        // Keep the user's full name readable when the hierarchy columns make the table wide.
+        if ($fullnamecolumn = $this->get_column('user:fullnamewithpicturelink')) {
+            $fullnamecolumn->add_attributes(['class' => 'local-mohhierarchy-fullname']);
+        }
+
         $entityname = $this->get_entity('user')->get_entity_name();
         $notset = get_string('notset', 'local_mohhierarchy');
         $formatter = static fn(?string $value): string => $value === null || $value === ''

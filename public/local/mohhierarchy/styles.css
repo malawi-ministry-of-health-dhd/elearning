@@ -1,0 +1,15 @@
+/* Keep full names readable in the wide hierarchy assignment report. */
+.local-mohhierarchy-fullname {
+    min-width: 16rem;
+    white-space: normal;
+}
+
+.local-mohhierarchy-fullname a {
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
+}
+
+.local-mohhierarchy-fullname .userpicture {
+    margin-right: 0.5rem;
+}
