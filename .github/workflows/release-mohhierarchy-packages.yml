@@ -6,6 +6,7 @@ on:
       - main
       - hierachy_plugin
     paths:
+      - .github/workflows/release-mohhierarchy-packages.yml
       - packages/local_mohhierarchy.zip
       - packages/profilefield_mohhierarchy.zip
       - packages/webinstall/local_mohhierarchy.zip
