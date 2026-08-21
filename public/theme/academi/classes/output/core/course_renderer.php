@@ -1232,20 +1232,33 @@ class course_renderer extends \core_course_renderer {
         $lessoncount = $this->count_course_modules((int)$course->id);
         $status = $entry['status'] ?? 'notstarted';
         $percent = (int)round((float)($entry['percent'] ?? 0));
+        $courseimage = \core_course\external\course_summary_exporter::get_course_image($course);
 
         $output = html_writer::start_tag('article',
             ['class' => 'programme-course-card programme-course-card--' . $status]);
 
-        $cover = html_writer::start_tag('div',
-            ['class' => 'programme-course-card__cover programme-course-card__cover--' . $variant]);
-        $cover .= html_writer::tag('span', 'Standard ' . $position,
-            ['class' => 'programme-course-card__coverlabel']);
-        $cover .= html_writer::tag('span', '', [
-            'class' => 'programme-course-card__covericon',
-            'aria-hidden' => 'true',
-        ]);
-        $cover .= html_writer::tag('span', 'COVER',
-            ['class' => 'programme-course-card__coverfoot']);
+        $coverclasses = 'programme-course-card__cover programme-course-card__cover--' . $variant;
+        if ($courseimage) {
+            $coverclasses .= ' programme-course-card__cover--image';
+        }
+        $cover = html_writer::start_tag('div', ['class' => $coverclasses]);
+        if ($courseimage) {
+            $cover .= html_writer::empty_tag('img', [
+                'class' => 'programme-course-card__image',
+                'src' => $courseimage,
+                'alt' => '',
+                'loading' => 'lazy',
+            ]);
+        } else {
+            $cover .= html_writer::tag('span', 'Standard ' . $position,
+                ['class' => 'programme-course-card__coverlabel']);
+            $cover .= html_writer::tag('span', '', [
+                'class' => 'programme-course-card__covericon',
+                'aria-hidden' => 'true',
+            ]);
+            $cover .= html_writer::tag('span', 'COVER',
+                ['class' => 'programme-course-card__coverfoot']);
+        }
         $cover .= html_writer::end_tag('div');
         $output .= $cover;
 

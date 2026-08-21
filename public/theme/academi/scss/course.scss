@@ -1365,6 +1365,21 @@
         .programme-course-card__cover--5 { background: linear-gradient(135deg, #20a4b5 0%, #156f7c 100%); }
         .programme-course-card__cover--6 { background: linear-gradient(135deg, #e87530 0%, #b95416 100%); }
 
+        .programme-course-card__cover--image {
+            padding: 0;
+
+            &:before {
+                display: none;
+            }
+        }
+
+        .programme-course-card__image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .programme-course-card__coverlabel,
         .programme-course-card__coverfoot,
         .programme-course-card__covericon {
