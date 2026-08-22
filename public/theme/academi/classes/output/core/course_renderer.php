@@ -521,11 +521,21 @@ class course_renderer extends \core_course_renderer {
         foreach (array_values($cards) as $index => $card) {
             $variant = ($index % 6) + 1;
             $output .= html_writer::start_tag('article', ['class' => 'course-catalogue-card']);
-            $output .= html_writer::tag('div',
-                html_writer::tag('span', '', ['class' => 'catalogue-cover__icon', 'aria-hidden' => 'true']) .
-                html_writer::tag('span', 'Cover', ['class' => 'catalogue-cover__label']),
-                ['class' => 'catalogue-cover catalogue-cover--' . $variant]
-            );
+            $coverclasses = 'catalogue-cover catalogue-cover--' . $variant;
+            if (!empty($card['imageurl'])) {
+                $coverclasses .= ' catalogue-cover--image';
+                $covercontent = html_writer::empty_tag('img', [
+                    'class' => 'catalogue-cover__image',
+                    'src' => $card['imageurl'],
+                    'alt' => '',
+                    'loading' => 'lazy',
+                ]);
+            } else {
+                $covercontent =
+                    html_writer::tag('span', '', ['class' => 'catalogue-cover__icon', 'aria-hidden' => 'true']) .
+                    html_writer::tag('span', 'Cover', ['class' => 'catalogue-cover__label']);
+            }
+            $output .= html_writer::tag('div', $covercontent, ['class' => $coverclasses]);
             $output .= html_writer::start_tag('div', ['class' => 'catalogue-card-body']);
             $output .= html_writer::start_tag('div', ['class' => 'catalogue-card-copy']);
             $output .= html_writer::tag('div', $this->course_catalogue_badges($card), ['class' => 'catalogue-card-badges']);
@@ -659,7 +669,8 @@ class course_renderer extends \core_course_renderer {
             $stats = $this->get_category_stats_batch(array_map(fn($c) => $c->id, $children),
                 array_map(fn($c) => $c->path, $children));
             foreach ($children as $child) {
-                $summary = $this->course_catalogue_text($chelper->get_category_formatted_description($child));
+                $description = $chelper->get_category_formatted_description($child);
+                $summary = $this->course_catalogue_text($description);
                 if ($summary === '') {
                     $summary = 'A focused learning pathway for Ministry of Health staff and health system partners.';
                 }
@@ -667,6 +678,7 @@ class course_renderer extends \core_course_renderer {
                 $cards[] = [
                     'name' => $child->get_formatted_name(),
                     'summary' => $summary,
+                    'imageurl' => $this->course_catalogue_image($description),
                     'url' => new moodle_url('/course/index.php', ['categoryid' => $child->id]),
                     'coursecount' => $child->get_courses_count(['recursive' => true]),
                     'duration' => 'Self-paced',
@@ -818,6 +830,38 @@ class course_renderer extends \core_course_renderer {
             $text = rtrim(substr($text, 0, 167)) . '...';
         }
         return s($text);
+    }
+
+    /**
+     * Return the first image URL embedded in a formatted category description.
+     *
+     * @param string|null $html Formatted category description.
+     * @return string|null
+     */
+    private function course_catalogue_image(?string $html): ?string {
+        if (empty($html)) {
+            return null;
+        }
+
+        $document = new \DOMDocument('1.0', 'UTF-8');
+        $previouserrors = libxml_use_internal_errors(true);
+        $loaded = $document->loadHTML('<?xml encoding="UTF-8"><body>' . $html . '</body>',
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previouserrors);
+
+        if (!$loaded) {
+            return null;
+        }
+
+        foreach ($document->getElementsByTagName('img') as $image) {
+            $src = trim($image->getAttribute('src'));
+            if ($src !== '') {
+                return $src;
+            }
+        }
+
+        return null;
     }
 
     /**
