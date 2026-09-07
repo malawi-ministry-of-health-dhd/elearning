@@ -45,6 +45,12 @@
         background: #f3f6fb;
     }
 
+    #page.drawers,
+    #page.drawers .main-inner,
+    #region-main {
+        margin-top: 0;
+    }
+
     #page.drawers .main-inner {
         max-width: none;
         padding: 0;
