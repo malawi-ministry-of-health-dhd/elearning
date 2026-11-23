@@ -32,7 +32,7 @@ class mod_hvp_renderer extends \mod_hvp_renderer {
 
         $styles[] = (object) [
             'path'    => $CFG->wwwroot . '/theme/academi/h5p/h5p-course-kit.css',
-            'version' => '?ver=1.1.0', // Bump after editing the CSS so browsers reload it.
+            'version' => '?ver=1.1.1', // Bump after editing the CSS so browsers reload it.
         ];
     }
 

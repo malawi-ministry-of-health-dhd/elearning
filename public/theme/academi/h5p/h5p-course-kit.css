@@ -494,7 +494,7 @@
    d) Interactive Book: minimum page height
    ------------------------------------------------------------------ */
 .h5p-column-box-container,
-.h5p-row-content > .h5p-column,
+.h5p-row-content.h5p-column > div,
 .h5p-dialogcards .h5p-dialogcards-cardholder {
   background: var(--kit-surface);
   border: 1px solid var(--kit-border);
@@ -519,6 +519,14 @@
   margin: 1.25em 0;
 }
 
+/* A block holding a Row is only a frame: its columns are the cards */
+.h5p-column-box-container:has(> .h5p-row) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
 /* Row: gutter between columns without breaking fixed widths */
 .h5p-row-wrapper {
   margin: 0 calc(var(--kit-gap) / -2);
@@ -530,10 +538,17 @@
   padding: .25em calc(var(--kit-gap) / 2) .75em;
 }
 
-.h5p-row-content > .h5p-column {
+/* Row puts .h5p-column on the .h5p-row-content element itself, so the
+   card is drawn on its inner wrapper and the padding above stays a gutter */
+.h5p-row-content.h5p-column > div {
   height: 100%;
   box-sizing: border-box;
   padding: .25em 0;
+}
+
+/* Images in a Row card line up with the text (H5P pads Text by 1em, not Image) */
+.h5p-row-content.h5p-column > div > .h5p-image {
+  padding: 1em 1em 0;
 }
 
 /* d) Interactive Book: give every page a minimum height so short pages
