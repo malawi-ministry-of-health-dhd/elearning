@@ -1,0 +1,698 @@
+/* =====================================================================
+   H5P COURSE KIT — one reusable look for H5P (mod_hvp) across Moodle
+   ---------------------------------------------------------------------
+   Loaded INSIDE every H5P iframe by the theme hook in renderers.php.
+   Works with no extra HTML or classes: authors use normal H5P content
+   types and toolbar buttons, and this file styles the result.
+
+     1. Tokens          ← the only section you normally edit
+     2. H5P theme map   (recolours every modern H5P content type)
+     3. Text & headings
+     4. Lists
+     5. Tables
+     6. Callouts        (the editor's "Block quote" button)
+     7. Accordions
+     8. Cards           (Column boxes, Row columns, Dialog Cards + card turn)
+     9. Links, code, dividers, images
+    10. Accessibility
+    11. Questions       (Yes/No, Multiple Choice, Drag and Drop…)
+   ===================================================================== */
+
+
+/* ---------------------------------------------------------------------
+   1. TOKENS — change these to re-brand. Everything else follows.
+   ------------------------------------------------------------------ */
+:root {
+  /* Brand */
+  --kit-primary: #1F5A8A;   /* headers, buttons, bullets, card accent */
+  --kit-accent:  #B8621B;   /* callouts, h4 labels                    */
+
+  /* Neutrals */
+  --kit-ink:         #1B2330;   /* main text      */
+  --kit-ink-muted:   #5A6474;   /* secondary text */
+  --kit-surface:     #FFFFFF;   /* cards, panels  */
+  --kit-surface-alt: #F4F6F9;   /* zebra rows     */
+  --kit-page:        #F8FAFC;   /* H5P background */
+  --kit-border:      #DCE1E8;
+
+  /* Feedback */
+  --kit-success: #2E7D4F;
+  --kit-danger:  #B3373D;
+
+  /* Shape & type */
+  --kit-radius:      10px;
+  --kit-radius-sm:   6px;
+  --kit-shadow:      0 1px 2px rgba(16, 24, 40, .06), 0 4px 14px rgba(16, 24, 40, .06);
+  --kit-font:        system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --kit-font-mono:   ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --kit-line-height: 1.6;
+
+  /* Cards */
+  --kit-card-accent:      var(--kit-primary);  /* set to transparent to remove the top bar */
+  --kit-card-accent-size: 4px;
+  --kit-gap:              1rem;                /* space between Row columns */
+
+  /* Interactive Book pages */
+  --kit-page-min-height:        28rem;         /* short pages are padded to this height */
+  --kit-page-min-height-mobile: 20rem;         /* same, on phones */
+
+  /* Derived — normally leave alone */
+  --kit-primary-dark:  color-mix(in srgb, var(--kit-primary), black 20%);
+  --kit-primary-light: color-mix(in srgb, var(--kit-primary), white 12%);
+  --kit-primary-tint:  color-mix(in srgb, var(--kit-primary), white 90%);
+  --kit-primary-tint2: color-mix(in srgb, var(--kit-primary), white 80%);
+  --kit-accent-tint:   color-mix(in srgb, var(--kit-accent), white 90%);
+}
+
+
+/* ---------------------------------------------------------------------
+   2. MAP TOKENS ONTO H5P'S OWN THEME VARIABLES
+   Recent H5P content types (Accordion, Column, Dialog Cards, all
+   question types, buttons, feedback, score bars…) read these, so this
+   block alone recolours most of H5P.
+   ------------------------------------------------------------------ */
+:root {
+  --h5p-theme-main-cta-base:   var(--kit-primary);
+  --h5p-theme-main-cta-light:  var(--kit-primary-light);
+  --h5p-theme-main-cta-dark:   var(--kit-primary-dark);
+  --h5p-theme-contrast-cta:    #FFFFFF;
+  --h5p-theme-contrast-cta-white: var(--kit-primary);
+  --h5p-theme-contrast-cta-light: var(--kit-primary-tint);
+  --h5p-theme-focus:           var(--kit-primary);
+
+  --h5p-theme-secondary-cta-base:  color-mix(in srgb, var(--kit-primary), white 86%);
+  --h5p-theme-secondary-cta-light: color-mix(in srgb, var(--kit-primary), white 93%);
+  --h5p-theme-secondary-cta-dark:  color-mix(in srgb, var(--kit-primary), white 74%);
+  --h5p-theme-secondary-contrast-cta:       var(--kit-ink);
+  --h5p-theme-secondary-contrast-cta-hover: var(--kit-primary-tint);
+
+  --h5p-theme-alternative-base:    color-mix(in srgb, var(--kit-primary), white 94%);
+  --h5p-theme-alternative-light:   color-mix(in srgb, var(--kit-primary), white 97%);
+  --h5p-theme-alternative-dark:    color-mix(in srgb, var(--kit-primary), white 85%);
+  --h5p-theme-alternative-darker:  color-mix(in srgb, var(--kit-primary), white 76%);
+
+  --h5p-theme-background:     var(--kit-page);
+  --h5p-theme-ui-base:        var(--kit-surface);
+  --h5p-theme-text-primary:   var(--kit-ink);
+  --h5p-theme-text-secondary: color-mix(in srgb, var(--kit-ink), var(--kit-ink-muted));
+  --h5p-theme-text-third:     var(--kit-ink-muted);
+  --h5p-theme-stroke-1:       var(--kit-border);
+  --h5p-theme-stroke-2:       color-mix(in srgb, var(--kit-border), white 50%);
+  --h5p-theme-stroke-3:       var(--kit-border);
+
+  --h5p-theme-border-radius-large:  var(--kit-radius);
+  --h5p-theme-border-radius-medium: var(--kit-radius-sm);
+  --h5p-theme-border-radius-small:  calc(var(--kit-radius-sm) * .66);
+  --h5p-theme-font-name:            var(--kit-font);
+
+  --h5p-theme-feedback-correct-main:        var(--kit-success);
+  --h5p-theme-feedback-correct-secondary:   color-mix(in srgb, var(--kit-success), white 92%);
+  --h5p-theme-feedback-correct-third:       color-mix(in srgb, var(--kit-success), white 75%);
+  --h5p-theme-feedback-incorrect-main:      var(--kit-danger);
+  --h5p-theme-feedback-incorrect-secondary: color-mix(in srgb, var(--kit-danger), white 92%);
+  --h5p-theme-feedback-incorrect-third:     color-mix(in srgb, var(--kit-danger), white 80%);
+}
+
+
+/* ---------------------------------------------------------------------
+   3. TEXT & HEADINGS  (H5P "Text" — also used inside Accordion,
+      Column, Interactive Book and Course Presentation)
+   ------------------------------------------------------------------ */
+.h5p-content {
+  font-family: var(--kit-font);
+}
+
+.h5p-advanced-text {
+  color: var(--kit-ink);
+  line-height: var(--kit-line-height);
+}
+
+.h5p-advanced-text p {
+  margin: 0 0 .9em;
+}
+
+.h5p-advanced-text > :last-child {
+  margin-bottom: 0;
+}
+
+.h5p-advanced-text h2,
+.h5p-advanced-text h3,
+.h5p-advanced-text h4 {
+  line-height: 1.25;
+  margin: 1.4em 0 .5em;
+}
+
+/* Label directly above a heading sits tight to it */
+.h5p-advanced-text h4 + h2,
+.h5p-advanced-text h4 + h3 {
+  margin-top: .25em;
+}
+
+.h5p-advanced-text h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: var(--kit-ink);
+}
+
+.h5p-advanced-text h3 {
+  font-size: 1.2em;
+  font-weight: 650;
+  color: var(--kit-primary-dark);
+}
+
+/* Heading 4 = small label / eyebrow above a block */
+.h5p-advanced-text h4 {
+  font-size: .8em;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--kit-accent);
+}
+
+
+/* ---------------------------------------------------------------------
+   4. LISTS
+   ------------------------------------------------------------------ */
+.h5p-advanced-text ul,
+.h5p-advanced-text ol {
+  margin: .25em 0 1em;
+  padding: 0;
+}
+
+.h5p-advanced-text ul > li,
+.h5p-advanced-text ol > li {
+  list-style: none;
+  position: relative;
+  margin: 0 0 .55em;
+  padding-left: 1.9em;
+}
+
+/* Bulleted: solid dot, hollow dot when nested */
+.h5p-advanced-text ul > li::before {
+  content: "";
+  position: absolute;
+  left: .45em;
+  top: .62em;
+  width: .45em;
+  height: .45em;
+  border-radius: 50%;
+  background: var(--kit-primary);
+}
+
+.h5p-advanced-text li ul > li::before {
+  background: transparent;
+  border: 2px solid var(--kit-primary);
+  box-sizing: border-box;
+}
+
+/* Numbered: number in a filled circle; nested = a, b, c */
+.h5p-advanced-text ol {
+  counter-reset: kit-ol;
+}
+
+.h5p-advanced-text ol > li {
+  counter-increment: kit-ol;
+  padding-left: 2.2em;
+}
+
+.h5p-advanced-text ol > li::before {
+  content: counter(kit-ol);
+  position: absolute;
+  left: 0;
+  top: .05em;
+  width: 1.55em;
+  height: 1.55em;
+  border-radius: 50%;
+  background: var(--kit-primary);
+  color: #FFFFFF;
+  font-size: .85em;
+  font-weight: 700;
+  line-height: 1.55em;
+  text-align: center;
+}
+
+.h5p-advanced-text li ol > li::before {
+  content: counter(kit-ol, lower-alpha) ".";
+  background: transparent;
+  color: var(--kit-primary-dark);
+  font-size: 1em;
+  width: auto;
+  height: auto;
+  line-height: inherit;
+  top: 0;
+}
+
+.h5p-advanced-text li ol > li {
+  padding-left: 1.5em;
+}
+
+.h5p-advanced-text li > ul,
+.h5p-advanced-text li > ol {
+  margin: .5em 0 0;
+}
+
+
+/* ---------------------------------------------------------------------
+   5. TABLES  (Text with tables enabled, and the H5P "Table" type)
+   !important is used only where the editor writes inline borders.
+   ------------------------------------------------------------------ */
+.h5p-advanced-text figure.table,
+.h5p-table figure.table {
+  display: flex;
+  flex-direction: column;
+  float: none;
+  max-width: 100%;
+  margin: 1em 0 1.25em;
+  padding: 0;
+  overflow-x: auto;   /* wide tables scroll on phones instead of breaking layout */
+}
+
+.h5p-advanced-text figure.table + .table-overflow-protection,
+.h5p-table figure.table + .table-overflow-protection {
+  display: none;
+}
+
+.h5p-advanced-text figure.table figcaption,
+.h5p-table figure.table figcaption {
+  order: -1;          /* caption above the table */
+  display: block;
+  padding: 0 0 .5em;
+  text-align: left;
+  font-size: .9em;
+  font-weight: 600;
+  color: var(--kit-ink-muted);
+}
+
+.h5p-advanced-text table,
+.h5p-table table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  border: 1px solid var(--kit-border) !important;
+  border-radius: var(--kit-radius);
+  overflow: hidden;
+  background: var(--kit-surface);
+  font-size: .95em;
+  line-height: 1.45;
+}
+
+.h5p-advanced-text table th,
+.h5p-advanced-text table td,
+.h5p-table table th,
+.h5p-table table td {
+  padding: .65em .9em !important;
+  border: 0 !important;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Header row */
+.h5p-advanced-text table thead th,
+.h5p-table table thead th {
+  background: var(--kit-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* Header column (th inside the body) */
+.h5p-advanced-text table tbody th,
+.h5p-table table tbody th {
+  background: var(--kit-primary-tint);
+  color: var(--kit-ink);
+  font-weight: 600;
+}
+
+.h5p-advanced-text table tbody tr + tr > *,
+.h5p-table table tbody tr + tr > *,
+.h5p-advanced-text table thead + tbody tr:first-child > *,
+.h5p-table table thead + tbody tr:first-child > * {
+  border-top: 1px solid var(--kit-border) !important;
+}
+
+.h5p-advanced-text table tbody tr:nth-child(even) td,
+.h5p-table table tbody tr:nth-child(even) td {
+  background: var(--kit-surface-alt);
+}
+
+.h5p-advanced-text table p,
+.h5p-table table p {
+  margin: 0;
+}
+
+
+/* ---------------------------------------------------------------------
+   6. CALLOUTS  (editor "Block quote" button → key-point box)
+   ------------------------------------------------------------------ */
+.h5p-advanced-text blockquote {
+  position: relative;
+  margin: 1.25em 0;
+  padding: 1em 1.25em 1em 3.4em;
+  background: var(--kit-accent-tint);
+  border-left: 4px solid var(--kit-accent);
+  border-radius: 0 var(--kit-radius) var(--kit-radius) 0;
+  color: var(--kit-ink);
+  font-style: normal;
+}
+
+.h5p-advanced-text blockquote::before {
+  content: "i";
+  content: "i" / "";   /* decorative: hidden from screen readers */
+  position: absolute;
+  left: 1.05em;
+  top: 1.05em;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: var(--kit-accent);
+  color: #FFFFFF;
+  font: italic 700 1em/1.5em Georgia, "Times New Roman", serif;
+  text-align: center;
+}
+
+.h5p-advanced-text blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.h5p-advanced-text blockquote h4:first-child {
+  margin-top: .1em;
+}
+
+
+/* ---------------------------------------------------------------------
+   7. ACCORDIONS  (H5P "Accordion")
+   Each panel becomes one bordered card; open panel is tinted.
+   ------------------------------------------------------------------ */
+.h5p-accordion {
+  background: transparent;
+  color: var(--kit-ink);
+  font-family: var(--kit-font);
+}
+
+.h5p-no-frame > .h5p-accordion {
+  border: 0;
+}
+
+.h5p-accordion .h5p-panel-title {
+  margin: .6em 0 0;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius);
+  background: var(--kit-surface);
+  overflow: hidden;
+  font-size: 1em;
+}
+
+.h5p-accordion .h5p-panel-title:first-child {
+  margin-top: 0;
+}
+
+.h5p-accordion .h5p-panel-title.h5p-panel-expanded {
+  border-color: var(--kit-primary-tint2);
+  border-radius: var(--kit-radius) var(--kit-radius) 0 0;
+}
+
+.h5p-accordion .h5p-panel-button,
+.h5p-accordion .h5p-panel-title:last-of-type .h5p-panel-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: .85em 1.1em;
+  border: 0;
+  border-radius: 0;
+  background: var(--kit-surface);
+  color: var(--kit-ink);
+  font-family: inherit;
+  font-size: 1.05em;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.h5p-accordion .h5p-panel-button:hover {
+  background: var(--kit-primary-tint);
+}
+
+.h5p-accordion .h5p-panel-expanded .h5p-panel-button,
+.h5p-accordion .h5p-panel-button[aria-expanded="true"],
+.h5p-accordion .h5p-panel-button[aria-expanded="true"]:hover {
+  background: var(--kit-primary-tint);
+  color: var(--kit-primary-dark);
+  box-shadow: inset 4px 0 0 var(--kit-primary);
+}
+
+/* + / − icon drawn in CSS (no icon font needed)
+   Closed: outlined circle with "+".  Open: filled circle with "−". */
+.h5p-accordion .h5p-panel-button::before,
+.h5p-accordion .h5p-panel-expanded .h5p-panel-button::before {
+  content: "";
+  position: static;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 1.25em;
+  height: 1.25em;
+  margin: 0 .75em 0 0;
+  padding: 0;
+  border: 2px solid var(--kit-primary);
+  border-radius: 50%;
+  background-color: var(--kit-surface);
+  background-image:
+    linear-gradient(var(--kit-primary), var(--kit-primary)),
+    linear-gradient(var(--kit-primary), var(--kit-primary));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 55% 2px, 2px 55%;          /* horizontal + vertical bar = "+" */
+  font-family: inherit;
+  transform: none;
+  transition: background-color .15s ease;
+}
+
+.h5p-accordion .h5p-panel-button:hover::before {
+  background-color: var(--kit-primary-tint2);
+}
+
+.h5p-accordion .h5p-panel-expanded .h5p-panel-button::before,
+.h5p-accordion .h5p-panel-expanded .h5p-panel-button:hover::before {
+  background-color: var(--kit-primary);
+  background-image: linear-gradient(#FFFFFF, #FFFFFF);
+  background-size: 55% 2px;                   /* horizontal bar only = "−" */
+}
+
+.h5p-accordion .h5p-panel-content {
+  padding: 1em 1.25em 1.1em 3.25em;           /* lines body text up with the title */
+  border: 1px solid var(--kit-primary-tint2);
+  border-top: 0;
+  border-radius: 0 0 var(--kit-radius) var(--kit-radius);
+  background: var(--kit-surface);
+  font-size: 1em;
+}
+
+
+/* ---------------------------------------------------------------------
+   8. CARDS
+   a) Column / Interactive Book: each separated block is a card
+   b) Row: each column is a card, side by side (stacks on phones)
+   c) Dialog Cards: the flip card itself
+   d) Interactive Book: minimum page height
+   ------------------------------------------------------------------ */
+.h5p-column-box-container,
+.h5p-row-content > .h5p-column,
+.h5p-dialogcards .h5p-dialogcards-cardholder {
+  background: var(--kit-surface);
+  border: 1px solid var(--kit-border);
+  border-top: var(--kit-card-accent-size) solid var(--kit-card-accent);
+  border-radius: var(--kit-radius);
+  box-shadow: var(--kit-shadow);
+}
+
+.h5p-column-box-container {
+  margin: .5em .25em 1em;
+  padding: .75em .5em;
+}
+
+.h5p-column-box-container:empty {
+  display: none;
+}
+
+/* Older Column versions use rulers instead of boxes */
+.h5p-column-ruler {
+  border: 0;
+  border-bottom: 1px solid var(--kit-border);
+  margin: 1.25em 0;
+}
+
+/* Row: gutter between columns without breaking fixed widths */
+.h5p-row-wrapper {
+  margin: 0 calc(var(--kit-gap) / -2);
+  width: calc(100% + var(--kit-gap));
+}
+
+.h5p-row-content {
+  box-sizing: border-box;
+  padding: .25em calc(var(--kit-gap) / 2) .75em;
+}
+
+.h5p-row-content > .h5p-column {
+  height: 100%;
+  box-sizing: border-box;
+  padding: .25em 0;
+}
+
+/* d) Interactive Book: give every page a minimum height so short pages
+      don't look squashed between the top and bottom navigation bars */
+.h5p-interactive-book-chapter {
+  min-height: var(--kit-page-min-height);
+  box-sizing: border-box;
+}
+
+@media (max-width: 576px) {
+  .h5p-interactive-book-chapter {
+    min-height: var(--kit-page-min-height-mobile);
+  }
+}
+
+/* Dialog Cards */
+.h5p-dialogcards .h5p-dialogcards-cardholder {
+  overflow: hidden;
+}
+
+.h5p-dialogcards .h5p-dialogcards-card-text {
+  color: var(--kit-ink);
+}
+
+
+/* e) Dialog Cards — turning the card (normal mode, Dialog Cards 1.9+)
+      H5P's own turn only squeezes the card flat. These rules make it turn
+      over in 3D, hide the turn button once the answer shows, and make the
+      whole answer clickable so a tap turns it back to the question.
+      Button text: Text overrides and translations → "Text for the turn
+      button" (e.g. "Reveal answer"). */
+.h5p-dialogcards .h5p-dialogcards-cardwrap.h5p-dialogcards-mode-normal {
+  perspective: 1200px;
+}
+
+.h5p-dialogcards .h5p-dialogcards-mode-normal .h5p-dialogcards-cardholder {
+  transition: transform .25s ease-in-out;
+}
+
+.h5p-dialogcards .h5p-dialogcards-mode-normal .h5p-dialogcards-cardholder.h5p-dialogcards-collapse {
+  transform: rotateY(90deg);   /* edge-on: H5P swaps the text here */
+}
+
+/* Answer side: the button stays (H5P needs it to turn back) but is
+   invisible, and its click area covers the whole card text */
+.h5p-dialogcards .h5p-dialogcards-mode-normal .h5p-dialogcards-turned .h5p-dialogcards-card-footer {
+  container-type: normal;      /* lets the click area reach past the footer */
+}
+
+.h5p-dialogcards .h5p-dialogcards-mode-normal .h5p-dialogcards-turned .h5p-dialogcards-card-footer > .h5p-theme-flip {
+  opacity: 0;
+}
+
+.h5p-dialogcards .h5p-dialogcards-mode-normal .h5p-dialogcards-turned .h5p-dialogcards-card-footer > .h5p-theme-flip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+/* Keyboard users still see where focus is on the answer side */
+.h5p-dialogcards .h5p-dialogcards-mode-normal .h5p-dialogcards-turned .h5p-dialogcards-card-text-wrapper:has(.h5p-theme-flip:focus-visible) {
+  outline: 3px solid var(--kit-primary);
+  outline-offset: -3px;
+  border-radius: var(--kit-radius);
+}
+
+
+/* ---------------------------------------------------------------------
+   9. LINKS, CODE, DIVIDERS, IMAGES
+   ------------------------------------------------------------------ */
+.h5p-advanced-text a,
+.h5p-table a,
+.h5p-dialogcards a {
+  color: var(--kit-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;
+}
+
+.h5p-advanced-text a:hover,
+.h5p-table a:hover {
+  color: var(--kit-primary-dark);
+  text-decoration-thickness: 2px;
+}
+
+.h5p-advanced-text hr {
+  border: 0;
+  height: 1px;
+  margin: 1.75em 0;
+  background: var(--kit-border);
+}
+
+.h5p-advanced-text code {
+  padding: .1em .35em;
+  border-radius: 4px;
+  background: var(--kit-surface-alt);
+  border: 1px solid var(--kit-border);
+  font-family: var(--kit-font-mono);
+  font-size: .9em;
+}
+
+.h5p-advanced-text pre {
+  margin: 1em 0;
+  padding: 1em 1.1em;
+  border-radius: var(--kit-radius-sm);
+  background: #1E2532;
+  color: #E8EDF4;
+  font-family: var(--kit-font-mono);
+  font-size: .9em;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.h5p-advanced-text pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+.h5p-image img,
+.h5p-advanced-text img {
+  border-radius: var(--kit-radius-sm);
+}
+
+/* No extra space above the first block in a Text item */
+.h5p-advanced-text > :is(h2, h3, h4, p, ul, ol, figure, blockquote, pre):first-child {
+  margin-top: 0;
+}
+
+
+/* ---------------------------------------------------------------------
+   10. ACCESSIBILITY
+   ------------------------------------------------------------------ */
+.h5p-content a:focus-visible,
+.h5p-content button:focus-visible,
+.h5p-accordion .h5p-panel-title .h5p-panel-button:focus-visible {
+  outline: 3px solid var(--kit-primary);
+  outline-offset: 2px;
+}
+
+.h5p-accordion .h5p-panel-title .h5p-panel-button:focus-visible {
+  outline-offset: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h5p-accordion .h5p-panel-button::before {
+    transition: none;
+  }
+}
+
+
+/* ---------------------------------------------------------------------
+   11. QUESTIONS
+   Buttons, answer options, correct/wrong states, score bars, drop zones
+   and draggables are coloured by section 2 — no extra rules needed.
+   Only spacing tweaks live here.
+   ------------------------------------------------------------------ */
+.h5p-theme .h5p-question-introduction {
+  line-height: 1.35;
+}
